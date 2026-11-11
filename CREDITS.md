@@ -27,8 +27,8 @@ RUNTIMES (installed separately)
       https://python-pillow.org     Decodes the game's BC7 textures (icons, photos).
 
 
-LIBRARIES USED BY THE PHONE APP (loaded from public CDNs, not bundled)
-----------------------------------------------------------------------
+LIBRARIES USED BY THE PHONE APP (bundled in web/vendor, licenses included)
+--------------------------------------------------------------------------
   three.js r170               three.js authors (mrdoob and contributors) MIT
       https://threejs.org           Map renderer, incl. the GLTFLoader and
                                     Line2 / LineMaterial add-ons.
@@ -36,8 +36,8 @@ LIBRARIES USED BY THE PHONE APP (loaded from public CDNs, not bundled)
       https://github.com/kazuhikoarase/qrcode-generator
                                     QR code in the server panel.
 
-FONTS (Google Fonts)
---------------------
+FONTS (bundled in web/vendor/fonts, OFL texts included)
+-------------------------------------------------------
   Rajdhani                    Indian Type Foundry                       SIL OFL 1.1
   Share Tech Mono             Carrois Type Design (Ralph du Carrois)    SIL OFL 1.1
 

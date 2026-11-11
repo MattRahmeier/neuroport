@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Neuroport Server</title>
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<link rel="stylesheet" href="/vendor/fonts/fonts.css">
+<script src="/vendor/qrcode.min.js"></script>
 <style>
   :root { --bg:#07080c; --bg2:#0e1018; --red:#ff6158; --red-dim:rgba(255,97,88,.55); --line:rgba(255,97,88,.28); --cyan:#5ef6ff; --yellow:#f7e05a; --text:#f3e3e1; --dim:rgba(255,140,130,.62); }
   * { box-sizing: border-box; }
@@ -25,7 +24,7 @@
   .card h2::before { content:"▮ "; color:var(--red); }
   .qr { background:#fff; padding:10px; width:220px; height:220px; margin:4px auto 10px; display:grid; place-items:center; }
   .qr img, .qr svg { width:100%; height:100%; image-rendering: pixelated; }
-  .code { text-align:center; font:400 34px 'Share Tech Mono'; letter-spacing:.3em; color:var(--cyan); text-shadow:0 0 12px rgba(94,246,255,.4); }
+  .code { text-align:center; font:400 26px 'Share Tech Mono'; letter-spacing:.12em; white-space:nowrap; color:var(--cyan); text-shadow:0 0 12px rgba(94,246,255,.4); }
   .urls { font:400 13px 'Share Tech Mono'; color:var(--text); word-break:break-all; margin-top:8px; }
   .urls div { padding:3px 0; }
   button.wide { display:block; width:100%; margin:10px 0 0; }
@@ -164,6 +163,8 @@
 </footer>
 <script>
 const $ = (id) => document.getElementById(id);
+// todo pedido de escrita leva este cabeçalho (o servidor recusa pedidos sem ele: protege contra outros sites)
+const ADMIN_H = { 'X-Neuroport-Admin': '1' };
 // ---------- idioma: o do computador, com troca EN / PT-BR (fica salvo) ----------
 const STR = {
   en: {
@@ -242,7 +243,7 @@ async function tick() {
   const ips = st.ips.join(',');
   if (st.token !== lastToken || ips !== lastIps) {
     lastToken = st.token; lastIps = ips;
-    $('code').textContent = st.token;
+    $('code').textContent = String(st.token).replace(/(.{4})(?=.)/g, '$1-');
     const urls = st.ips.map((ip) => `http://${ip}:${st.port}/?k=${st.token}`);
     $('urls').innerHTML = urls.map((u) => `<div>${esc(u)}</div>`).join('');
     // o QR usa o endereço da rede local (192.168.x.x), não o da VPN
@@ -307,7 +308,7 @@ $('immlist').onclick = async (ev) => {
     const hideAll = !list.every((e) => (immPending.has(e.n) ? immPending.get(e.n) : !!e.h));
     for (const e of list) immPending.set(e.n, hideAll);
     immKey = ''; renderImm(lastSt);
-    await fetch('/admin/api/cmd', { method: 'POST', body: JSON.stringify({ action: 'imm_all', arg: hideAll ? '1' : '0' }) });
+    await fetch('/admin/api/cmd', { method: 'POST', headers: ADMIN_H, body: JSON.stringify({ action: 'imm_all', arg: hideAll ? '1' : '0' }) });
     return;
   }
   const b = ev.target.closest('[data-imm]');
@@ -316,9 +317,9 @@ $('immlist').onclick = async (ev) => {
   const nowHidden = sw.classList.contains('on');   // ligado = visível; tocar esconde
   sw.classList.toggle('on', !nowHidden);
   immPending.set(b.dataset.imm, nowHidden);
-  await fetch('/admin/api/cmd', { method: 'POST', body: JSON.stringify({ action: 'imm_toggle', arg: b.dataset.imm }) });
+  await fetch('/admin/api/cmd', { method: 'POST', headers: ADMIN_H, body: JSON.stringify({ action: 'imm_toggle', arg: b.dataset.imm }) });
 };
-$('newtoken').onclick = async () => { if (confirm(T('newCodeQ'))) { await fetch('/admin/api/token', { method: 'POST' }); tick(); } };
+$('newtoken').onclick = async () => { if (confirm(T('newCodeQ'))) { await fetch('/admin/api/token', { method: 'POST', headers: ADMIN_H }); tick(); } };
 // modo imersivo: a linha inteira liga/desliga; mostra o novo estado na hora e espera o jogo confirmar
 // (com o jogo pausado/em segundo plano o mod só lê o comando quando a janela do jogo volta)
 let immWant = null, immWantAt = 0;
@@ -328,19 +329,19 @@ $('immrow').onclick = async () => {
   $('imm').classList.toggle('on', on);
   $('imm').classList.add('wait');
   $('immwait').hidden = false;
-  await fetch('/admin/api/cmd', { method: 'POST', body: JSON.stringify({ action: on ? 'immersive_on' : 'immersive_off' }) });
+  await fetch('/admin/api/cmd', { method: 'POST', headers: ADMIN_H, body: JSON.stringify({ action: on ? 'immersive_on' : 'immersive_off' }) });
 };
 // dica (!) e endereços
 $('info-head').onclick = () => { const o = $('info-body').hidden; $('info-body').hidden = !o; $('info').classList.toggle('open', o); };
 try { $('showip').checked = localStorage.getItem('neuroport.admin.ips') === '1'; } catch { /* ok */ }
 $('urls').hidden = !$('showip').checked;
 $('showip').onchange = () => { $('urls').hidden = !$('showip').checked; try { localStorage.setItem('neuroport.admin.ips', $('showip').checked ? '1' : '0'); } catch { /* ok */ } };
-for (const b of document.querySelectorAll('[data-open]')) b.onclick = () => fetch('/admin/api/open?what=' + b.dataset.open, { method: 'POST' });
+for (const b of document.querySelectorAll('[data-open]')) b.onclick = () => fetch('/admin/api/open?what=' + b.dataset.open, { method: 'POST', headers: ADMIN_H });
 $('restart').onclick = async () => {
   if (!confirm(T('restartQ'))) return;
   $('restart').disabled = true;
   $('restart').textContent = T('restarting');
-  try { await fetch('/admin/api/restart', { method: 'POST' }); } catch { /* ok */ }
+  try { await fetch('/admin/api/restart', { method: 'POST', headers: ADMIN_H }); } catch { /* ok */ }
   // espera o servidor novo responder e recarrega o painel
   const t0 = Date.now();
   const wait = async () => {
@@ -349,8 +350,8 @@ $('restart').onclick = async () => {
   };
   setTimeout(wait, 800);
 };
-$('clearcache').onclick = () => fetch('/admin/api/clear-cache', { method: 'POST' }).then(tick);
-$('refresh').onclick = () => fetch('/admin/api/cmd', { method: 'POST', body: JSON.stringify({ action: 'shop_refresh' }) });
+$('clearcache').onclick = () => fetch('/admin/api/clear-cache', { method: 'POST', headers: ADMIN_H }).then(tick);
+$('refresh').onclick = () => fetch('/admin/api/cmd', { method: 'POST', headers: ADMIN_H, body: JSON.stringify({ action: 'shop_refresh' }) });
 tick(); setInterval(tick, 1500);
 </script>
 </body>

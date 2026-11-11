@@ -15,7 +15,7 @@ Cyber Engine Tweaks mods have no network access, so the mod and the server talk 
 - The mod writes the game state to `state.json` (fast data), `world.json` (map markers, journal, shop), `shards.json` and `probe.json` (diagnostics).
 - The server writes commands to `inbox.txt`. The mod runs each one and acknowledges it in `state.json`.
 
-The server serves the phone app, pushes state to it over Server-Sent Events, and runs a local control panel at `http://localhost:7077/admin`. Nothing is sent to the internet. The phone pairs with a 6-character code.
+The server serves the phone app, pushes state to it over Server-Sent Events, and runs a local control panel at `http://localhost:7077/admin`. Nothing is sent to the internet. The phone pairs with a 12-character code.
 
 ## Repository layout
 
@@ -66,6 +66,14 @@ The package contains a few scripts, all plain text and readable:
 - `tools/gamefiles/*.py`: read the game's `.archive` files. Oodle-compressed data is decompressed with the game's own `oo2ext_7_win64.dll` (loaded with `ctypes` from your install, not shipped).
 
 The server only listens on your local network and only accepts commands from a paired phone (or from the PC itself, for the panel). On disk it writes only to the mod folder (`inbox.txt`) and to its own folder (pairing code, image cache, ringtone); it reads the game's archives and the game's screenshot folder. The only programs it starts are: Python for the extractors above, `presskey.ps1` for photo mode, the browser or Explorer when you press the panel's "open" buttons, and a new copy of itself when you press "Restart server".
+
+## Security and privacy
+
+- **No internet.** The app, the panel, three.js, the QR code library and the fonts are all served by the local server (`web/vendor`). Nothing is requested from third-party servers and there is no telemetry.
+- **Pairing code.** 12 random characters (60 bits), shown as `XXXX-XXXX-XXXX` and in the QR code. After 8 wrong codes in 10 minutes, that device's IP is blocked for 15 minutes. "New code" in the panel disconnects every phone.
+- **Control panel.** Only answers requests from the PC itself, addressed to `localhost`, and write requests must carry a header that only the panel sends. Other websites open in the PC's browser can't use it (CSRF / DNS rebinding).
+- **Photos.** The gallery only lists the game's own photo-mode files (`photomode_*.png`) from `Pictures\Cyberpunk 2077`, and only to a paired phone.
+- **Plain HTTP on the local network.** Phones would reject a self-signed HTTPS certificate with a full-screen warning, so the connection is not encrypted. Use it on your home Wi-Fi (Windows "private network"), not on public or shared networks.
 
 ## License
 

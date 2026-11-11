@@ -92,11 +92,18 @@ let TOKEN = opt('--token', null);
 if (!TOKEN) {
   try { TOKEN = fs.readFileSync(TOKEN_FILE, 'utf8').trim(); } catch { /* novo */ }
 }
+// Código de pareamento: 12 caracteres em base32 sem letras ambíguas (60 bits), mostrado como XXXX-XXXX-XXXX.
+// Junto com o limite de tentativas abaixo, adivinhar o código pela rede não é viável.
+const B32 = 'ABCDEFGHJKMNPQRSTVWXYZ23456789';
+const normKey = (k) => String(k || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const fmtToken = (t) => (t || '').replace(/(.{4})(?=.)/g, '$1-');
 function newToken() {
-  TOKEN = crypto.randomBytes(3).toString('hex').toUpperCase();
+  const b = crypto.randomBytes(12);
+  TOKEN = Array.from(b, (x) => B32[x % B32.length]).join('');
   try { fs.writeFileSync(TOKEN_FILE, TOKEN); } catch { /* ok */ }
 }
-if (!TOKEN || flag('--new-token')) newToken();
+TOKEN = normKey(TOKEN);
+if (!TOKEN || flag('--new-token') || (!opt('--token', null) && TOKEN.length < 12)) newToken();   // códigos antigos (6 caracteres) são trocados
 
 // ---------- estado compartilhado ----------
 let gameState = null;      // último state.json válido
@@ -239,12 +246,42 @@ const MIME = {
   '.webmanifest': 'application/manifest+json',
   '.glb': 'model/gltf-binary',
   '.ogg': 'audio/ogg',
+  '.woff2': 'font/woff2',
   '.bin': 'application/octet-stream',
 };
 
+const isLocal = (req) => /^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/.test(req.socket.remoteAddress || '');
+// Painel do servidor: além de vir do próprio PC, o pedido precisa ser para localhost (contra DNS rebinding)
+// e, se for de escrita, vir do próprio painel: outro site aberto no navegador não consegue mandar o
+// cabeçalho X-Neuroport-Admin sem permissão (CORS), nem fingir a origem.
+function adminRequestOk(req) {
+  const host = String(req.headers.host || '').replace(/:\d+$/, '').toLowerCase();
+  if (!['localhost', '127.0.0.1', '[::1]'].includes(host)) return false;
+  const origin = req.headers.origin;
+  if (origin && !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\]):\d+$/i.test(origin)) return false;
+  if (req.headers['sec-fetch-site'] && !['same-origin', 'none'].includes(req.headers['sec-fetch-site'])) return false;
+  if (req.method !== 'GET' && req.headers['x-neuroport-admin'] !== '1') return false;
+  return true;
+}
+// Limite de tentativas: 8 códigos errados em 10 min bloqueiam aquele IP por 15 min (o próprio PC não conta).
+const authFails = new Map(); // ip -> { n, t0, until }
+const clientIp = (req) => (req.socket.remoteAddress || '').replace('::ffff:', '');
+function authBlocked(req) {
+  const f = authFails.get(clientIp(req));
+  return !!(f && f.until && Date.now() < f.until);
+}
 function authed(req, url) {
-  const k = url.searchParams.get('k') || req.headers['x-neuroport-key'];
-  return k && String(k).toUpperCase() === TOKEN;
+  if (authBlocked(req)) return false;
+  const k = normKey(url.searchParams.get('k') || req.headers['x-neuroport-key']);
+  const ok = k.length === TOKEN.length && crypto.timingSafeEqual(Buffer.from(k), Buffer.from(TOKEN));
+  if (!ok && !isLocal(req)) {
+    const ip = clientIp(req), now = Date.now();
+    let f = authFails.get(ip);
+    if (!f || now - f.t0 > 600000) f = { n: 0, t0: now, until: 0 };
+    if (++f.n >= 8) { f.until = now + 900000; console.log(`  [segurança] ${ip} bloqueado por 15 min (código errado ${f.n}x)`); }
+    authFails.set(ip, f);
+  }
+  return ok;
 }
 
 function readBody(req) {
@@ -276,14 +313,14 @@ function listPhotos() {
     let names = [];
     try { names = fs.readdirSync(dir); } catch { continue; }
     for (const n of names) {
-      if (!/\.(png|jpe?g|webp)$/i.test(n)) continue;
+      // só as fotos do modo foto do jogo (photomode_DDMMAAAA_HHMMSS.png); outras imagens da pasta não aparecem
+      if (!/^photomode_[\d_]+\.(png|jpe?g|webp)$/i.test(n)) continue;
       try { out.push({ name: n, dir, t: fs.statSync(path.join(dir, n)).mtimeMs }); } catch { /* ok */ }
     }
   }
   return out.sort((a, b) => b.t - a.t);
 }
 
-const isLocal = (req) => /^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/.test(req.socket.remoteAddress || '');
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -365,6 +402,7 @@ const server = http.createServer(async (req, res) => {
   // ---------- painel do servidor (só no próprio PC) ----------
   if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) {
     if (!isLocal(req)) { res.writeHead(403); return res.end('painel disponível só no PC'); }
+    if (!adminRequestOk(req)) { res.writeHead(403); return res.end('pedido bloqueado'); }
     if (url.pathname === '/admin/api/status') {
       const snap = snapshot();
       const g = snap.game || {};
@@ -382,7 +420,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === '/admin/api/token' && req.method === 'POST') {
       newToken();
-      console.log(`  Novo código de pareamento: ${TOKEN}`);
+      console.log(`  Novo código de pareamento: ${fmtToken(TOKEN)}`);
       for (const r of clients) { try { r.end(); } catch { /* ok */ } }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ token: TOKEN }));
@@ -599,7 +637,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('  Abra no navegador do celular (mesma rede Wi-Fi):');
   for (const ip of lanAddresses()) console.log(`    http://${ip}:${PORT}/?k=${TOKEN}`);
   console.log('');
-  console.log(`  Código de pareamento: ${TOKEN}`);
+  console.log(`  Código de pareamento: ${fmtToken(TOKEN)}`);
   console.log(`  Painel do servidor: http://localhost:${PORT}/admin`);
   console.log('  (Ctrl+C para encerrar)');
   console.log('');

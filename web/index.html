@@ -12,15 +12,13 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="vendor/fonts/fonts.css">
   <link rel="stylesheet" href="app.css">
   <link rel="stylesheet" href="os.css">
   <script type="importmap">
     { "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      "three": "./vendor/three/three.module.js",
+      "three/addons/": "./vendor/three/addons/"
     } }
   </script>
 </head>
@@ -35,7 +33,7 @@
       <h1 class="pair-title">NEUROPORT</h1>
       <p class="dim" data-i18n="pairText"></p>
       <form id="pair-form" autocomplete="off">
-        <input id="pair-input" maxlength="12" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="A1B2C3">
+        <input id="pair-input" maxlength="16" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX">
         <button class="btn btn-primary" type="submit"><span data-i18n="connect"></span></button>
       </form>
       <p id="pair-err" class="err" data-i18n="badCode" hidden></p>
