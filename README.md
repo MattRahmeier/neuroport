@@ -1,10 +1,31 @@
 # Neuroport
 
+![Neuroport: your phone becomes V's](https://i.imgur.com/z1LaDx1.png)
+
 **Your phone becomes V's.** A second-screen companion for Cyberpunk 2077: messages, calls, the map, your garage, the radio, shards and more, live from the game on your phone's browser over your home Wi-Fi.
 
 <img width="718" height="360" alt="garage_summon" src="https://github.com/user-attachments/assets/f8594b6e-c6a8-4011-8c10-14d9c1b9506c" />
 
-Players: download the ready-to-install package from Nexus Mods. This repository holds the source code.
+**Players:** download the ready-to-install package from [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/search/?gsearch=Neuroport). It includes map data extracted from the game, so it is only distributed there; this repository holds the source code ([release notes](https://github.com/MattRahmeier/neuroport/releases)).
+
+## In action
+
+The game on the left, the phone on the right.
+
+| Call a car from the garage | GPS route on the map |
+|---|---|
+| ![Calling a car](https://i.imgur.com/RqE6PpO.gif) | ![Map route](https://i.imgur.com/2utCCV0.gif) |
+| **Car mode with autodrive** | **Photo mode from the Camera app** |
+| ![Autodrive](https://i.imgur.com/i3dAIBG.gif) | ![Photo mode](https://i.imgur.com/7EXcKen.gif) |
+
+## Features
+
+- **Comms and calls:** every conversation and contact, replies, old chats, gig images, notifications, calls with portraits and subtitles.
+- **Map and car mode:** Night City with the game's icons, active jobs, GPS, minimap-style car mode with autodrive, radio and paint.
+- **Garage:** summon any vehicle, full specs, El Capitan's contracts and the cars they unlock, Autofixer shop.
+- **Quick Gig and journal:** nearest gigs and NCPD jobs, track or untrack any job.
+- **Radio, shards and status:** stations and volume, a shard reader, level and attributes.
+- **Immersive mode:** hide the HUD piece by piece or all at once, photo mode, wallpaper from your game photos.
 
 ## How it works
 
