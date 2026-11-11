@@ -12,9 +12,9 @@
 
 The game on the left, the phone on the right.
 
-| Call a car from the garage | GPS route on the map |
+| Radio in car mode | GPS route on the map |
 |---|---|
-| ![Calling a car](https://i.imgur.com/RqE6PpO.gif) | ![Map route](https://i.imgur.com/2utCCV0.gif) |
+| ![Radio](https://i.imgur.com/ghOgbQF.gif) | ![Map route](https://i.imgur.com/2utCCV0.gif) |
 | **Car mode with autodrive** | **Photo mode from the Camera app** |
 | ![Autodrive](https://i.imgur.com/i3dAIBG.gif) | ![Photo mode](https://i.imgur.com/7EXcKen.gif) |
 
