@@ -8,13 +8,10 @@
 
 ## In action
 
-The game on the left, the phone on the right.
 
-| Radio in car mode | GPS route on the map |
-|---|---|
-| ![Radio](https://i.imgur.com/ghOgbQF.gif) | ![Map route](https://i.imgur.com/2utCCV0.gif) |
-| **Car mode with autodrive** | **Photo mode from the Camera app** |
-| ![Autodrive](https://i.imgur.com/i3dAIBG.gif) | ![Photo mode](https://i.imgur.com/7EXcKen.gif) |
+| ![Map route](https://i.imgur.com/2utCCV0.gif) |
+
+| ![Photo mode](https://i.imgur.com/7EXcKen.gif) |
 
 ## Features
 
