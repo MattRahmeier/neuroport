@@ -2,6 +2,8 @@
 
 **Your phone becomes V's.** A second-screen companion for Cyberpunk 2077: messages, calls, the map, your garage, the radio, shards and more, live from the game on your phone's browser over your home Wi-Fi.
 
+<img width="718" height="360" alt="garage_summon" src="https://github.com/user-attachments/assets/f8594b6e-c6a8-4011-8c10-14d9c1b9506c" />
+
 Players: download the ready-to-install package from Nexus Mods. This repository holds the source code.
 
 ## How it works
