@@ -1,0 +1,93 @@
+// Neuroport — toque de chamada recebida.
+// Toca o toque do próprio jogo (ringtone/ringtone.ogg, extraído da instalação)
+// pela Web Audio API. Não usa <audio>: no Android um elemento de áudio vira uma
+// "sessão de mídia" e o sistema (fone Bluetooth, notificação) pode dar play nele
+// sozinho. Com Web Audio, o toque só sai quando o app manda.
+'use strict';
+
+const Ringtone = (() => {
+  let ctx = null, buffer = null, loading = null, failed = false;
+  let src = null, ringing = false, synthTimer = null, vibeTimer = null;
+
+  function audioCtx() {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) ctx = new AC();
+    }
+    return ctx;
+  }
+
+  function load() {
+    if (buffer || failed || loading || !audioCtx()) return loading;
+    loading = fetch('ringtone/ringtone.ogg')
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then((ab) => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)))
+      .then((b) => { buffer = b; })
+      .catch(() => { failed = true; })
+      .finally(() => { loading = null; });
+    return loading;
+  }
+
+  // navegadores só liberam áudio depois de um toque na tela
+  function unlock() {
+    const c = audioCtx();
+    if (!c) return;
+    if (c.state === 'suspended') c.resume();
+    load();
+  }
+  document.addEventListener('pointerdown', unlock, { capture: true });
+
+  function synthBurst() {
+    if (!ctx) return;
+    const t0 = ctx.currentTime;
+    for (let i = 0; i < 4; i++) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square';
+      o.frequency.value = i % 2 ? 1180 : 1560;
+      const t = t0 + i * 0.13;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.08, t + 0.01);
+      g.gain.setValueAtTime(0.08, t + 0.1);
+      g.gain.linearRampToValueAtTime(0, t + 0.12);
+      o.connect(g).connect(ctx.destination);
+      o.start(t); o.stop(t + 0.13);
+    }
+  }
+
+  function playBuffer() {
+    if (!ringing || src || !buffer) return;
+    src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;
+    src.connect(ctx.destination);
+    src.start();
+  }
+
+  function start() {
+    if (ringing) return;
+    ringing = true;
+    const c = audioCtx();
+    if (c) {
+      if (c.state === 'suspended') c.resume();
+      if (buffer) playBuffer();
+      else if (!failed) {
+        const p = load();
+        if (p) p.then(() => { if (!ringing) return; if (buffer) playBuffer(); else { synthBurst(); synthTimer = setInterval(synthBurst, 1800); } });
+      } else { synthBurst(); synthTimer = setInterval(synthBurst, 1800); }
+    }
+    const vibe = () => { try { navigator.vibrate && navigator.vibrate([400, 200, 400]); } catch { /* ok */ } };
+    vibe();
+    vibeTimer = setInterval(vibe, 2000);
+  }
+
+  // sempre limpa tudo, mesmo que achemos que não estava tocando
+  function stop() {
+    ringing = false;
+    if (src) { try { src.stop(); } catch { /* ok */ } try { src.disconnect(); } catch { /* ok */ } src = null; }
+    clearInterval(synthTimer); synthTimer = null;
+    clearInterval(vibeTimer); vibeTimer = null;
+    try { navigator.vibrate && navigator.vibrate(0); } catch { /* ok */ }
+  }
+
+  return { start, stop, unlock, get ringing() { return ringing; } };
+})();

@@ -1,0 +1,13 @@
+{
+  "name": "Neuroport",
+  "short_name": "Neuroport",
+  "description": "Segunda tela para o celular do Cyberpunk 2077",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#07080c",
+  "theme_color": "#07080c",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

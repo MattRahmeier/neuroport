@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neuroport Server</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  :root { --bg:#07080c; --bg2:#0e1018; --red:#ff6158; --red-dim:rgba(255,97,88,.55); --line:rgba(255,97,88,.28); --cyan:#5ef6ff; --yellow:#f7e05a; --text:#f3e3e1; --dim:rgba(255,140,130,.62); }
+  * { box-sizing: border-box; }
+  body { margin:0; background: radial-gradient(120% 60% at 80% -10%, rgba(255,97,88,.12), transparent 60%), var(--bg); color: var(--red); font: 500 15px Rajdhani, system-ui, sans-serif; letter-spacing:.04em; min-height:100vh; }
+  body::after { content:""; position:fixed; inset:0; pointer-events:none; background:repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0,0,0,.2) 2px 3px); }
+  header { display:flex; align-items:center; gap:16px; padding:18px 24px; border-bottom:1px solid var(--line); }
+  .logo { font-size:26px; font-weight:700; letter-spacing:.32em; text-shadow:0 0 16px rgba(255,97,88,.45); }
+  .logo small { display:block; font:400 11px 'Share Tech Mono'; letter-spacing:.2em; color:var(--dim); }
+  .pill { margin-left:auto; display:flex; align-items:center; gap:8px; font-weight:700; letter-spacing:.18em; font-size:12px; padding:6px 12px; border:1px solid var(--line); }
+  .pill i { width:9px; height:9px; transform:rotate(45deg); background:var(--red); }
+  .pill.on { color:var(--cyan); border-color:rgba(94,246,255,.4); } .pill.on i { background:var(--cyan); box-shadow:0 0 8px var(--cyan); }
+  main { display:grid; grid-template-columns: 320px 1fr; gap:16px; padding:16px 24px 24px; }
+  .card { background: linear-gradient(160deg, rgba(255,97,88,.07), rgba(255,97,88,.01) 60%), var(--bg2); border-left:2px solid var(--red); padding:14px 16px; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); }
+  .card h2 { margin:0 0 10px; font-size:12px; letter-spacing:.28em; color:var(--dim); }
+  .card h2::before { content:"▮ "; color:var(--red); }
+  .qr { background:#fff; padding:10px; width:220px; height:220px; margin:4px auto 10px; display:grid; place-items:center; }
+  .qr img, .qr svg { width:100%; height:100%; image-rendering: pixelated; }
+  .code { text-align:center; font:400 34px 'Share Tech Mono'; letter-spacing:.3em; color:var(--cyan); text-shadow:0 0 12px rgba(94,246,255,.4); }
+  .urls { font:400 13px 'Share Tech Mono'; color:var(--text); word-break:break-all; margin-top:8px; }
+  .urls div { padding:3px 0; }
+  button.wide { display:block; width:100%; margin:10px 0 0; }
+  .info { margin-top:12px; border:1px solid rgba(247,224,90,.35); background:rgba(247,224,90,.05); }
+  .info-head { width:100%; display:flex; align-items:center; gap:10px; clip-path:none; border:0; background:none; color:#f7e05a; padding:8px 10px; text-align:left; }
+  .info-head:hover { background:rgba(247,224,90,.1); color:#f7e05a; }
+  .info-ico { width:20px; height:20px; flex:none; display:grid; place-items:center; border:1.5px solid #f7e05a; border-radius:50%; font:700 13px Rajdhani; }
+  .info-head span { flex:1; }
+  .info-head .chev, .immfold .chev { transition:transform .15s; }
+  .info.open .chev { transform:rotate(90deg); }
+  .info-body { margin:0; padding:0 12px 10px 40px; color:var(--text); font-size:14px; letter-spacing:.02em; }
+  .info-body li { margin:4px 0; }
+  .showip { display:flex; align-items:center; gap:8px; margin-top:10px; font-size:13px; color:var(--dim); cursor:pointer; user-select:none; }
+  .showip input { accent-color:#5ef6ff; width:16px; height:16px; }
+  .actions.stack { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; }
+  .actions.stack button { width:100%; font-size:12px; padding:9px 8px; }
+  button.immmain { width:100%; margin-bottom:12px; clip-path:none; border:0; background:none; padding:4px 18px 4px 0; text-align:left; color:var(--red); font:inherit; letter-spacing:.04em; }
+  button.immmain:hover { background:rgba(255,97,88,.05); color:var(--red); }
+  .immwait { margin-top:6px; font-size:12px; color:#f7e05a; }
+  .switch.wait { opacity:.6; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:10px; }
+  .stat .k { font-size:11px; letter-spacing:.2em; color:var(--dim); }
+  .stat .v { font:400 22px 'Share Tech Mono'; color:var(--text); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .stat .v.ok { color:var(--cyan); } .stat .v.bad { color:var(--red); }
+  .col { display:flex; flex-direction:column; gap:16px; min-width:0; }
+  button { font: 700 13px Rajdhani; letter-spacing:.16em; color:var(--red); background:rgba(255,97,88,.08); border:1px solid var(--line); padding:10px 14px; cursor:pointer; clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+  button:hover { background:var(--red); color:var(--bg); }
+  button.cy { color:var(--cyan); border-color:rgba(94,246,255,.4); background:rgba(94,246,255,.06); } button.cy:hover { background:var(--cyan); color:var(--bg); }
+  .actions { display:flex; flex-wrap:wrap; gap:8px; }
+  .phones div { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px solid rgba(255,97,88,.12); font:400 13px 'Share Tech Mono'; color:var(--text); }
+  .phones .dim { color:var(--dim); }
+  .log { height:300px; overflow:auto; font:400 12px/1.5 'Share Tech Mono'; color:var(--text); background:#05060a; padding:10px; border:1px solid rgba(255,97,88,.15); white-space:pre-wrap; }
+  .log span { color:var(--dim); }
+  .tog { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .tog { padding-right:18px; }
+  .switch { flex:none; width:68px; height:30px; border:1px solid var(--line); position:relative; cursor:pointer; background:rgba(255,97,88,.06); box-sizing:border-box; }
+  .switch i { position:absolute; top:4px; left:4px; width:20px; height:20px; background:var(--red-dim); transition:.15s; }
+  .immbox { margin:0 0 14px; border-top:1px solid var(--line); }
+  .immfold { width:100%; display:flex; justify-content:space-between; align-items:center; clip-path:none; border:0; background:none; padding:12px 0; color:var(--red); }
+  .immfold:hover { background:none; color:var(--cyan); }
+  .immfold .chev { transition:transform .15s; font-size:18px; }
+  .immfold.open .chev { transform:rotate(90deg); }
+  .immnote { margin:0 0 10px; color:var(--dim); font-size:13px; }
+  .immlist { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:6px 18px; }
+  button.immrow { width:100%; clip-path:none; border:0; border-bottom:1px solid rgba(255,97,88,.12); background:none; padding:6px 0; font:600 14px Rajdhani; letter-spacing:.04em; text-align:left; color:var(--text); }
+  button.immrow:hover { background:rgba(255,97,88,.06); color:var(--text); }
+  button.immall { grid-column:1 / -1; color:#f7e05a; font-weight:700; letter-spacing:.14em; border-bottom:1px solid var(--line); }
+  button.immall:hover { color:#f7e05a; }
+  .immrow .switch { width:52px; height:24px; } .immrow .switch i { width:14px; height:14px; } .immrow .switch.on i { left:calc(100% - 18px); }
+  .switch.on { border-color:var(--cyan); } .switch.on i { left:calc(100% - 24px); background:var(--cyan); box-shadow:0 0 8px var(--cyan); }
+  .nav { display:flex; flex-wrap:wrap; gap:8px; padding:14px 24px 22px; border-top:1px solid var(--line); margin-top:4px; }
+  .nav .lbl { font-size:11px; letter-spacing:.24em; color:var(--dim); align-self:center; margin-right:6px; }
+  .langsw { display:flex; gap:0; }
+  .langsw button { padding:6px 10px; font-size:11px; clip-path:none; }
+  .langsw button.on { background:var(--red); color:var(--bg); }
+  .qr.stale { opacity:.12; filter:blur(3px); }
+  .hint { font-size:12px; color:var(--dim); margin-top:8px; line-height:1.35; }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">NEUROPORT<small data-i18n="subtitle"></small></div>
+  <div class="pill" id="pill"><i></i><span id="pill-txt"></span></div>
+  <div class="langsw" id="langsw"><button data-lang="en">EN</button><button data-lang="pt">PT-BR</button></div>
+</header>
+<main>
+  <div class="col">
+    <section class="card">
+      <h2 data-i18n="pair"></h2>
+      <div class="qr" id="qr"></div>
+      <div class="code" id="code">------</div>
+      <button class="cy wide" data-open="app" data-i18n="openApp"></button>
+      <div class="info" id="info">
+        <button class="info-head" id="info-head"><b class="info-ico">!</b><span data-i18n="infoTitle"></span><b class="chev">›</b></button>
+        <ul class="info-body" id="info-body" hidden>
+          <li data-i18n="info1"></li>
+          <li data-i18n-html="info2"></li>
+          <li data-i18n="info3"></li>
+        </ul>
+      </div>
+      <label class="showip"><input type="checkbox" id="showip"><span data-i18n="showIps"></span></label>
+      <div class="urls" id="urls" hidden></div>
+      <div class="actions stack">
+        <button id="newtoken" data-i18n="newCode"></button>
+        <button id="restart" data-i18n="restart"></button>
+        <button id="clearcache" data-i18n="clearCache"></button>
+        <button id="refresh" data-i18n="refreshShop"></button>
+      </div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="phones"></h2>
+      <div class="phones" id="phones"></div>
+    </section>
+  </div>
+  <div class="col">
+    <section class="card">
+      <h2 data-i18n="status"></h2>
+      <div class="grid">
+        <div class="stat"><div class="k" data-i18n="kGame"></div><div class="v" id="s-game">—</div></div>
+        <div class="stat"><div class="k">MOD</div><div class="v" id="s-mod">—</div></div>
+        <div class="stat"><div class="k" data-i18n="kPlace"></div><div class="v" id="s-district">—</div></div>
+        <div class="stat"><div class="k" data-i18n="kLang"></div><div class="v" id="s-lang">—</div></div>
+        <div class="stat"><div class="k" data-i18n="kPois"></div><div class="v" id="s-pois">—</div></div>
+        <div class="stat"><div class="k" data-i18n="kQuests"></div><div class="v" id="s-quests">—</div></div>
+        <div class="stat"><div class="k" data-i18n="kContacts"></div><div class="v" id="s-contacts">—</div></div>
+        <div class="stat"><div class="k" data-i18n="kUptime"></div><div class="v" id="s-up">—</div></div>
+      </div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="controls"></h2>
+      <button class="tog immmain" id="immrow">
+        <div><b style="letter-spacing:.14em" data-i18n="imm"></b><div style="color:var(--dim);font-size:13px" data-i18n="immDesc"></div>
+          <div class="immwait" id="immwait" hidden data-i18n="immWait"></div></div>
+        <div class="switch" id="imm"><i></i></div>
+      </button>
+      <div class="immbox" id="immbox" hidden>
+        <button class="immfold" id="immfold"><span data-i18n="immHud"></span><b class="chev">›</b></button>
+        <div id="immbody" hidden>
+          <p class="immnote" data-i18n="immHudDesc"></p>
+          <div class="immlist" id="immlist"></div>
+        </div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>LOG</h2>
+      <div class="log" id="log"></div>
+    </section>
+  </div>
+</main>
+<footer class="nav">
+  <span class="lbl" data-i18n="open"></span>
+  <button class="cy" data-open="mod" data-i18n="openMod"></button>
+  <button class="cy" data-open="photos" data-i18n="openPhotos"></button>
+  <button class="cy" data-open="project" data-i18n="openProject"></button>
+</footer>
+<script>
+const $ = (id) => document.getElementById(id);
+// ---------- idioma: o do computador, com troca EN / PT-BR (fica salvo) ----------
+const STR = {
+  en: {
+    subtitle: 'SERVER // CONTROL PANEL', pair: 'PAIR PHONE', newCode: 'NEW CODE', phones: 'CONNECTED PHONES', status: 'STATUS',
+    infoTitle: 'CAN\'T CONNECT?', info1: 'Phone and PC on the same Wi-Fi network.',
+    info2: 'If an error page opens, type the address starting with <b>http://</b> (not https).',
+    info3: 'Windows Firewall: allow Node.js on private networks.', showIps: 'Show the addresses',
+    immWait: 'Waiting for the game… (it applies when the game window is active)',
+    kGame: 'GAME', kPlace: 'LOCATION', kLang: 'LANGUAGE', kPois: 'MARKERS', kQuests: 'JOBS', kContacts: 'CONTACTS', kUptime: 'UPTIME',
+    controls: 'CONTROLS', imm: 'IMMERSIVE MODE', immDesc: 'Hides the HUD elements you pick (below or on the phone) and blocks the radio, autodrive and call-vehicle keys — everything goes through the phone.',
+    restart: 'RESTART SERVER', restarting: 'RESTARTING...', clearCache: 'CLEAR AVATAR CACHE', refreshShop: 'REFRESH SHOP',
+    open: 'OPEN', openApp: 'OPEN THE APP IN THIS PC BROWSER', openMod: 'MOD FOLDER', openPhotos: 'GAME PHOTOS', openProject: 'NEUROPORT FOLDER',
+    qrOff: 'QR unavailable (no internet)', stopped: 'SERVER STOPPED', pillMock: 'SIMULATION', pillLive: 'GAME CONNECTED', pillMenu: 'IN GAME MENU', pillOff: 'NO GAME',
+    gIn: 'IN GAME', gMenu: 'MENU', gClosed: 'CLOSED', browser: 'Browser', none: 'none',
+    newCodeQ: 'Generate a new code? Connected phones will need to pair again.', restartQ: 'Restart the server? Phones reconnect by themselves in a few seconds.',
+    immAll: 'HIDE EVERYTHING', immHud: 'IMMERSIVE MODE: HUD ELEMENTS', immHudDesc: 'Everything stays on screen. Turn off what should disappear; it only hides while immersive mode is on. Same list as the phone.',
+    imm_minimap: 'Minimap', imm_hud_markers: 'World markers', imm_healthbar: 'Health bar', imm_stamina_oxygen: 'Stamina / oxygen', imm_npc_healthbar: 'Enemy health bars',
+    imm_ammo_counter: 'Ammo counter', imm_input_hints: 'Button hints', imm_action_buttons: 'ALL quick slots (T, V, Z, X and quick item)',
+    imm_activity_log: 'Activity log', imm_crosshairs: 'Crosshair', imm_quest_tracker: 'Job objective', imm_object_markers: 'Object markers', imm_npc_names: 'NPC names',
+    imm_wanted_level: 'Wanted level (NCPD)', imm_npc_nameplates: 'NPC nameplates', imm_crouch_indicator: 'Crouch indicator', imm_vehicle_hud: 'Vehicle HUD',
+  },
+  pt: {
+    subtitle: 'SERVER // PAINEL DE CONTROLE', pair: 'PAREAR CELULAR', newCode: 'NOVO CÓDIGO', phones: 'CELULARES CONECTADOS', status: 'STATUS',
+    infoTitle: 'NÃO CONECTA?', info1: 'Celular e PC na mesma rede Wi-Fi.',
+    info2: 'Se abrir uma página de erro, digite o endereço começando com <b>http://</b> (não https).',
+    info3: 'Firewall do Windows: permita o Node.js em redes privadas.', showIps: 'Mostrar os endereços',
+    immWait: 'Esperando o jogo… (vale quando a janela do jogo estiver ativa)',
+    kGame: 'JOGO', kPlace: 'LOCAL', kLang: 'IDIOMA', kPois: 'MARCADORES', kQuests: 'MISSÕES', kContacts: 'CONTATOS', kUptime: 'TEMPO LIGADO',
+    controls: 'CONTROLES', imm: 'MODO IMERSIVO', immDesc: 'Esconde os elementos do HUD escolhidos (aqui embaixo ou no celular) e bloqueia as teclas de rádio, piloto automático e chamar veículo — tudo passa pelo celular.',
+    restart: 'REINICIAR SERVIDOR', restarting: 'REINICIANDO...', clearCache: 'LIMPAR CACHE DE AVATARES', refreshShop: 'ATUALIZAR LOJA',
+    open: 'ABRIR', openApp: 'ABRIR O APP NO NAVEGADOR DO PC', openMod: 'PASTA DO MOD', openPhotos: 'FOTOS DO JOGO', openProject: 'PASTA DO NEUROPORT',
+    qrOff: 'QR indisponível (sem internet)', stopped: 'SERVIDOR PARADO', pillMock: 'SIMULAÇÃO', pillLive: 'JOGO CONECTADO', pillMenu: 'NO MENU DO JOGO', pillOff: 'SEM JOGO',
+    gIn: 'EM JOGO', gMenu: 'MENU', gClosed: 'FECHADO', browser: 'Navegador', none: 'nenhum',
+    newCodeQ: 'Gerar um novo código? Os celulares conectados precisarão parear de novo.', restartQ: 'Reiniciar o servidor? Os celulares reconectam sozinhos em alguns segundos.',
+    immAll: 'ESCONDER TUDO', immHud: 'MODO IMERSIVO: ELEMENTOS DO HUD', immHudDesc: 'Tudo começa visível. Desligue o que deve sumir; só some com o modo imersivo ativado. É a mesma lista do celular.',
+    imm_minimap: 'Minimapa', imm_hud_markers: 'Marcadores no mundo', imm_healthbar: 'Barra de vida', imm_stamina_oxygen: 'Stamina / oxigênio', imm_npc_healthbar: 'Vida dos inimigos',
+    imm_ammo_counter: 'Munição', imm_input_hints: 'Dicas de botões', imm_action_buttons: 'TODOS os atalhos (T, V, Z, X e item rápido)',
+    imm_activity_log: 'Registro de atividades', imm_crosshairs: 'Mira', imm_quest_tracker: 'Objetivo da missão', imm_object_markers: 'Marcadores de objetos', imm_npc_names: 'Nomes dos NPCs',
+    imm_wanted_level: 'Nível de procurado (NCPD)', imm_npc_nameplates: 'Placas de nome dos NPCs', imm_crouch_indicator: 'Indicador de agachar', imm_vehicle_hud: 'HUD do veículo',
+  },
+};
+let LANG = 'en';
+try { LANG = localStorage.getItem('neuroport.admin.lang') || ''; } catch { /* ok */ }
+if (!STR[LANG]) LANG = /^pt/i.test(navigator.language || '') ? 'pt' : 'en';
+const T = (k) => (STR[LANG] && STR[LANG][k]) || STR.en[k] || k;
+function applyLang() {
+  document.documentElement.lang = LANG === 'pt' ? 'pt-BR' : 'en';
+  for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = T(el.dataset.i18n);
+  for (const el of document.querySelectorAll('[data-i18n-html]')) el.innerHTML = T(el.dataset.i18nHtml);
+  for (const b of document.querySelectorAll('[data-lang]')) b.classList.toggle('on', b.dataset.lang === LANG);
+}
+document.getElementById('langsw').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-lang]');
+  if (!b) return;
+  LANG = b.dataset.lang;
+  try { localStorage.setItem('neuroport.admin.lang', LANG); } catch { /* ok */ }
+  applyLang(); lastToken = null; tick();
+});
+applyLang();
+let lastToken = null, lastIps = '';
+function qr(text) {
+  if (!window.qrcode) { $('qr').textContent = T('qrOff'); return; }
+  const q = qrcode(0, 'M'); q.addData(text); q.make();
+  $('qr').innerHTML = q.createSvgTag({ cellSize: 6, margin: 0, scalable: true });
+}
+const fmtUp = (ms) => { const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return h ? `${h}h ${m}m` : `${m}m ${s % 60}s`; };
+const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+async function tick() {
+  let st;
+  try { st = await (await fetch('/admin/api/status', { cache: 'no-store' })).json(); } catch {
+    // servidor parado: o QR antigo levaria a uma página inexistente
+    $('pill-txt').textContent = T('stopped'); $('pill').classList.remove('on');
+    $('qr').classList.add('stale'); lastToken = null; return;
+  }
+  $('qr').classList.remove('stale');
+  const ips = st.ips.join(',');
+  if (st.token !== lastToken || ips !== lastIps) {
+    lastToken = st.token; lastIps = ips;
+    $('code').textContent = st.token;
+    const urls = st.ips.map((ip) => `http://${ip}:${st.port}/?k=${st.token}`);
+    $('urls').innerHTML = urls.map((u) => `<div>${esc(u)}</div>`).join('');
+    // o QR usa o endereço da rede local (192.168.x.x), não o da VPN
+    qr(urls[0] || '');  // o servidor já manda o IP da rede local primeiro
+  }
+  const live = st.online && st.inGame;
+  $('pill').classList.toggle('on', live);
+  $('pill-txt').textContent = T(st.mock ? 'pillMock' : live ? 'pillLive' : st.online ? 'pillMenu' : 'pillOff');
+  $('s-game').textContent = T(live ? 'gIn' : st.online ? 'gMenu' : 'gClosed');
+  $('s-game').className = 'v ' + (live ? 'ok' : 'bad');
+  $('s-mod').textContent = st.mod ? 'v' + st.mod : '—';
+  $('s-district').textContent = st.district || '—';
+  $('s-lang').textContent = st.lang || '—';
+  $('s-pois').textContent = st.counts.pois;
+  $('s-quests').textContent = st.counts.quests;
+  $('s-contacts').textContent = st.counts.contacts;
+  $('s-up').textContent = fmtUp(st.uptime);
+  if (immWant != null && (st.immersive === immWant || Date.now() - immWantAt > 60000)) immWant = null;
+  $('imm').classList.toggle('on', immWant != null ? immWant : st.immersive);
+  $('imm').classList.toggle('wait', immWant != null);
+  $('immwait').hidden = immWant == null;
+  renderImm(st);
+  $('phones').innerHTML = st.phones.length
+    ? st.phones.map((p) => `<div><span>${esc(p.ip)}</span><span class="dim">${/Android/.test(p.ua) ? 'Android' : /iPhone|iPad/.test(p.ua) ? 'iPhone' : T('browser')} · ${fmtUp(Date.now() - p.since)}</span></div>`).join('')
+    : `<div class="dim">${T('none')}</div>`;
+  const log = $('log');
+  const atEnd = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+  log.innerHTML = st.log.map((l) => `<span>${new Date(l.t).toLocaleTimeString()}</span> ${esc(l.line.trim())}`).join('\n');
+  if (atEnd) log.scrollTop = log.scrollHeight;
+}
+// elementos do HUD do modo imersivo: mesma lista e ordem do celular (Ajustes), só com o modo ligado
+let immOpen = false, immWas = null, immKey = '';
+const immPending = new Map(); // nome -> escondido (até o jogo confirmar)
+function immLabel(e) {
+  const k = 'imm_' + e.n;
+  if (STR[LANG][k]) return STR[LANG][k];
+  const l = e.l && !/ToCName|hash_/i.test(e.l) ? e.l : '';
+  return l || e.n.replace(/_/g, ' ');
+}
+let lastSt = null;
+function renderImm(st) {
+  lastSt = st;
+  const list = st.immHud || [];
+  if (st.immersive !== immWas) { if (st.immersive && immWas === false) immOpen = true; immWas = st.immersive; }
+  $('immbox').hidden = !(st.immersive && list.length);
+  $('immfold').classList.toggle('open', immOpen);
+  $('immbody').hidden = !immOpen;
+  for (const e of list) if (immPending.has(e.n) && immPending.get(e.n) === !!e.h) immPending.delete(e.n);
+  const key = JSON.stringify([list, [...immPending], LANG]);
+  if (key === immKey) return;
+  immKey = key;
+  const allHidden = list.every((e) => (immPending.has(e.n) ? immPending.get(e.n) : !!e.h));
+  $('immlist').innerHTML = `<button class="tog immrow immall" data-immall="1"><span>${esc(T('immAll'))}</span><span class="switch${allHidden ? ' on' : ''}"><i></i></span></button>` + list.map((e) => {
+    const hidden = immPending.has(e.n) ? immPending.get(e.n) : !!e.h;
+    return `<button class="tog immrow" data-imm="${esc(e.n)}"><span>${esc(immLabel(e))}</span><span class="switch${hidden ? '' : ' on'}"><i></i></span></button>`;
+  }).join('');
+}
+$('immfold').onclick = () => { immOpen = !immOpen; $('immfold').classList.toggle('open', immOpen); $('immbody').hidden = !immOpen; };
+$('immlist').onclick = async (ev) => {
+  if (ev.target.closest('[data-immall]')) {
+    const list = (lastSt && lastSt.immHud) || [];
+    const hideAll = !list.every((e) => (immPending.has(e.n) ? immPending.get(e.n) : !!e.h));
+    for (const e of list) immPending.set(e.n, hideAll);
+    immKey = ''; renderImm(lastSt);
+    await fetch('/admin/api/cmd', { method: 'POST', body: JSON.stringify({ action: 'imm_all', arg: hideAll ? '1' : '0' }) });
+    return;
+  }
+  const b = ev.target.closest('[data-imm]');
+  if (!b) return;
+  const sw = b.querySelector('.switch');
+  const nowHidden = sw.classList.contains('on');   // ligado = visível; tocar esconde
+  sw.classList.toggle('on', !nowHidden);
+  immPending.set(b.dataset.imm, nowHidden);
+  await fetch('/admin/api/cmd', { method: 'POST', body: JSON.stringify({ action: 'imm_toggle', arg: b.dataset.imm }) });
+};
+$('newtoken').onclick = async () => { if (confirm(T('newCodeQ'))) { await fetch('/admin/api/token', { method: 'POST' }); tick(); } };
+// modo imersivo: a linha inteira liga/desliga; mostra o novo estado na hora e espera o jogo confirmar
+// (com o jogo pausado/em segundo plano o mod só lê o comando quando a janela do jogo volta)
+let immWant = null, immWantAt = 0;
+$('immrow').onclick = async () => {
+  const on = !(immWant != null ? immWant : $('imm').classList.contains('on'));
+  immWant = on; immWantAt = Date.now();
+  $('imm').classList.toggle('on', on);
+  $('imm').classList.add('wait');
+  $('immwait').hidden = false;
+  await fetch('/admin/api/cmd', { method: 'POST', body: JSON.stringify({ action: on ? 'immersive_on' : 'immersive_off' }) });
+};
+// dica (!) e endereços
+$('info-head').onclick = () => { const o = $('info-body').hidden; $('info-body').hidden = !o; $('info').classList.toggle('open', o); };
+try { $('showip').checked = localStorage.getItem('neuroport.admin.ips') === '1'; } catch { /* ok */ }
+$('urls').hidden = !$('showip').checked;
+$('showip').onchange = () => { $('urls').hidden = !$('showip').checked; try { localStorage.setItem('neuroport.admin.ips', $('showip').checked ? '1' : '0'); } catch { /* ok */ } };
+for (const b of document.querySelectorAll('[data-open]')) b.onclick = () => fetch('/admin/api/open?what=' + b.dataset.open, { method: 'POST' });
+$('restart').onclick = async () => {
+  if (!confirm(T('restartQ'))) return;
+  $('restart').disabled = true;
+  $('restart').textContent = T('restarting');
+  try { await fetch('/admin/api/restart', { method: 'POST' }); } catch { /* ok */ }
+  // espera o servidor novo responder e recarrega o painel
+  const t0 = Date.now();
+  const wait = async () => {
+    try { const r = await fetch('/admin/api/status', { cache: 'no-store' }); if (r.ok && Date.now() - t0 > 1200) return location.reload(); } catch { /* ainda subindo */ }
+    if (Date.now() - t0 < 20000) setTimeout(wait, 500); else { $('restart').disabled = false; $('restart').textContent = T('restart'); }
+  };
+  setTimeout(wait, 800);
+};
+$('clearcache').onclick = () => fetch('/admin/api/clear-cache', { method: 'POST' }).then(tick);
+$('refresh').onclick = () => fetch('/admin/api/cmd', { method: 'POST', body: JSON.stringify({ action: 'shop_refresh' }) });
+tick(); setInterval(tick, 1500);
+</script>
+</body>
+</html>
