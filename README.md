@@ -4,14 +4,31 @@
 
 **Your phone becomes V's.** A second-screen companion for Cyberpunk 2077: messages, calls, the map, your garage, the radio, shards and more, live from the game on your phone's browser over your home Wi-Fi.
 
-**Players:** download the ready-to-install package from [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/search/?gsearch=Neuroport). It includes map data extracted from the game, so it is only distributed there; this repository holds the source code ([release notes](https://github.com/MattRahmeier/neuroport/releases)).
+## Download and install
+
+**[Download Neuroport 1.0 (zip, 7.9 MB)](https://github.com/MattRahmeier/neuroport/releases/latest/download/Neuroport-1.0.zip)** from the [latest release](https://github.com/MattRahmeier/neuroport/releases/latest). It will also be on Nexus Mods once it passes review.
+
+**Install these first:**
+
+1. [Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107): extract into the game folder, start the game once and pick the overlay key.
+2. [RED4ext](https://www.nexusmods.com/cyberpunk2077/mods/2380) and [Codeware](https://www.nexusmods.com/cyberpunk2077/mods/7780): extract into the game folder.
+3. [Node.js LTS](https://nodejs.org): the "Windows Installer (.msi)", default options.
+4. Optional: [Python 3.10+](https://www.python.org/downloads/) with "Add python.exe to PATH" ticked, then `pip install pillow` in a Command Prompt (contact portraits and vehicle photos).
+
+**Then:**
+
+1. Extract `Neuroport-1.0.zip` into the game folder (the one with `bin` and `archive`), or drag the zip into Vortex / Mod Organizer 2.
+2. Run `bin\x64\plugins\cyber_engine_tweaks\mods\neuroport\companion\Start Neuroport.bat`. Allow Node.js on **private networks** when Windows Firewall asks.
+3. The control panel opens on the PC. Scan its QR code with your phone (same Wi-Fi), and load a save.
+
+Windows may warn that the `.bat` file came from the internet: it only runs `node server\server.js --gui` (see [About the scripts](#about-the-scripts)).
 
 ## In action
 
 
-| ![Map route](https://i.imgur.com/2utCCV0.gif) |
+![Map route](https://i.imgur.com/2utCCV0.gif)
 
-| ![Photo mode](https://i.imgur.com/7EXcKen.gif) |
+![Photo mode](https://i.imgur.com/7EXcKen.gif)
 
 ## Features
 
