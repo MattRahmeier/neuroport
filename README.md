@@ -110,6 +110,12 @@ The server only listens on your local network and only accepts commands from a p
 - **Photos.** The gallery only lists the game's own photo-mode files (`photomode_*.png`) from `Pictures\Cyberpunk 2077`, and only to a paired phone.
 - **Plain HTTP on the local network.** Phones would reject a self-signed HTTPS certificate with a full-screen warning, so the connection is not encrypted. Use it on your home Wi-Fi (Windows "private network"), not on public or shared networks.
 
+## Support
+
+Neuroport is free. If you enjoy it, you can support development on [Ko-fi](https://ko-fi.com/mathiasrahmeier).
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/mathiasrahmeier)
+
 ## License
 
 Neuroport's code is under the [MIT License](LICENSE). Cyberpunk 2077 and its content are (c) CD PROJEKT S.A.; Neuroport is a fan-made mod, not affiliated with or endorsed by CD PROJEKT RED. See [CREDITS.md](CREDITS.md).
