@@ -140,7 +140,7 @@
     }, 380);
   }
   // pular: tocar na tela depois de alguns segundos
-  setTimeout(() => { $('boot-skip').hidden = false; }, 4000);
+  setTimeout(() => { const s = $('boot-skip'); if (s) s.hidden = false; }, 4000);
   $('boot-skip').addEventListener('click', () => {
     try { sessionStorage.setItem(BOOT_KEY, '1'); } catch { /* ok */ }
     el.classList.add('out');

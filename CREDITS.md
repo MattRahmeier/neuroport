@@ -80,6 +80,13 @@ TOOLS USED TO MAKE THE MOD (not included)
   Claude Code (Anthropic)     AI coding assistant used during development
 
 
+COMMUNITY
+---------
+  Nastas95 (https://github.com/Nastas95/neuroport-linux): the Linux port and
+      the desktop layout ideas (side menu, split Comms and Shards, two-column
+      car mode) that this version's desktop mode and Linux support are based on.
+
+
 NEUROPORT
 ---------
   Created by mathiasrahmeier.    Support: https://ko-fi.com/mathiasrahmeier

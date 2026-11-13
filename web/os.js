@@ -23,7 +23,7 @@ const OS = {
 
 // ---------- preferências do celular ----------
 const PREF_KEY = 'neuroport.prefs';
-const prefs = Object.assign({ autoCar: true, ring: true, vibrate: true, mapMode: 'active', nav: 'buttons', navSide: 'left' },
+const prefs = Object.assign({ autoCar: true, ring: true, vibrate: true, mapMode: 'active', nav: 'buttons', navSide: 'left', layout: 'auto' },
   (() => { try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch { return {}; } })());
 function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* ok */ } }
 
@@ -90,6 +90,7 @@ function openApp(id, opts = {}) {
   if (panel && !opts.noAnim) { panel.classList.remove('app-enter'); void panel.offsetWidth; panel.classList.add('app-enter'); }
   if (!opts.fromHistory) history.pushState({ app: id }, '', '#' + id);
   onAppOpen(id);
+  renderSidebar(true);
 }
 let recentApps = [];
 function goHome(fromHistory) {
@@ -105,6 +106,7 @@ function goHome(fromHistory) {
   if (window.Map3D && Map3D.ready && typeof mapHost !== 'undefined' && mapHost === 'phone') Map3D.setVisible(false);
   if (!fromHistory && location.hash) history.pushState({ app: 'home' }, '', location.pathname + location.search);
   renderHome(true);
+  renderSidebar(true);
 }
 window.addEventListener('popstate', (e) => {
   // botão voltar do Android: fecha a conversa, depois o app
@@ -180,6 +182,61 @@ $('recents').addEventListener('click', (e) => {
 })();
 applyNav();
 
+// ---------- modo desktop: menu lateral e telas divididas em telas grandes ----------
+const DESK_MQ = matchMedia('(min-width: 1000px)');
+function isDesk() { return prefs.layout === 'desktop' || (prefs.layout !== 'phone' && DESK_MQ.matches); }
+function syncSplit() {
+  const d = isDesk();
+  if ($('chat-empty')) $('chat-empty').hidden = !d || !!chatOpen;
+  renderCommTabs();
+  const listOff = !!shardOpen && !d;
+  $('shard-list').hidden = listOff;
+  $('shard-search').hidden = listOff;
+  $('shard-savebar').hidden = listOff;
+  $('shard-reader').hidden = !shardOpen;
+  $('shard-empty').hidden = !d || !!shardOpen;
+}
+function applyLayout() {
+  const was = document.body.classList.contains('desktop');
+  const d = isDesk();
+  document.body.classList.toggle('desktop', d);
+  syncSplit();
+  renderSidebar(true);
+  if (was !== d) {
+    lastMsgListKey = '';
+    if (currentApp === 'messages') renderMessages(true);
+    if (currentApp === 'shards') renderShards();
+    // o mapa e o fundo de tela medem o espaço de novo
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
+}
+DESK_MQ.addEventListener('change', applyLayout);
+let lastSideKey = '';
+const SIDE_HOME = { id: 'home', icon: 'i-home', label: 'appHome', color: '#ff6158' };
+function renderSidebar(force) {
+  if (!isDesk()) return;
+  const g = game();
+  const unread = (g.contacts || []).reduce((n, c) => n + (c.unread || 0), 0);
+  const live = !!(state && state.online && g.inGame);
+  const key = JSON.stringify([currentApp, unread, LANG, live]);
+  if (!force && key === lastSideKey) return;
+  lastSideKey = key;
+  const ico = (a) => a.img ? `<img src="${a.img}" alt="">` : `<svg viewBox="0 0 24 24"><use href="#${a.icon}"/></svg>`;
+  const item = (a) => `<button class="side-app${currentApp === a.id ? ' is-active' : ''}" data-app="${a.id}" style="--c:${a.color}">
+    <span class="side-ico">${ico(a)}</span><span class="side-name">${esc(t(a.label))}</span>${a.id === 'messages' && unread ? `<b>${unread}</b>` : ''}</button>`;
+  const apps = OS.apps.filter((a) => a.id !== 'settings');
+  const set = OS.apps.find((a) => a.id === 'settings');
+  $('side-apps').innerHTML = item(SIDE_HOME) + '<div class="side-sep"></div>' + apps.map(item).join('') +
+    '<div class="side-sep"></div>' + (set ? item(set) : '');
+  $('side-link').classList.toggle('on', live);
+  $('side-link-txt').textContent = t(live ? 'sideLive' : 'sideOff');
+}
+$('side-apps').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-app]');
+  if (!b) return;
+  if (b.dataset.app === 'home') goHome(); else launchApp(b.dataset.app);
+});
+
 // gesto: deslizar para cima na barra de baixo volta para a tela inicial
 (() => {
   const bar = $('homebar');
@@ -210,6 +267,7 @@ function renderStatus() {
   $('sb-bat-fill').style.width = hp + '%';
   $('sb-bat').classList.toggle('low', hp < 30);
   $('sb-bat-val').textContent = hp;
+  renderSidebar();
 }
 
 // ---------- tela inicial ----------
@@ -417,6 +475,8 @@ function renderSettings() {
     </div>` : ''}
     <div class="set-group"><div class="tag">${t('setPhone')}</div>
       ${canFullscreen() ? row('fullscreen', t('setFullscreen'), t('setFullscreenDesc'), isFullscreen()) : ''}
+      ${row('layout', t('setLayout'), t('setLayoutDesc'), false,
+        `<span class="seg">${['auto', 'phone', 'desktop'].map((v) => `<span class="seg-b${(prefs.layout || 'auto') === v ? ' is-active' : ''}" data-lay="${v}">${t(v === 'auto' ? 'layoutAuto' : v === 'phone' ? 'layoutPhone' : 'layoutDesk')}</span>`).join('')}</span>`)}
       ${row('autoCar', t('setAutoCar'), t('setAutoCarDesc'), prefs.autoCar)}
       ${row('ring', t('setRing'), t('setRingDesc'), prefs.ring)}
       ${row('vibrate', t('setVibrate'), t('setVibrateDesc'), prefs.vibrate)}
@@ -481,10 +541,17 @@ $('settings-list').addEventListener('click', (e) => {
     renderSettings();
     return;
   }
+  const lay = e.target.closest('[data-lay]');
+  if (lay) { buzz(8); prefs.layout = lay.dataset.lay; savePrefs(); applyLayout(); renderSettings(); return; }
   const b = e.target.closest('[data-set]');
   if (!b) return;
   buzz(10);
   const id = b.dataset.set;
+  if (id === 'layout') {
+    const order = ['auto', 'phone', 'desktop'];
+    prefs.layout = order[(order.indexOf(prefs.layout || 'auto') + 1) % order.length];
+    savePrefs(); applyLayout(); renderSettings(); return;
+  }
   if (id === 'immersive') cmd(game().immersive ? 'immersive_off' : 'immersive_on');
   else if (id === 'fullscreen') toggleFullscreen();
   else if (id === 'nav') { prefs.nav = prefs.nav === 'gestures' ? 'buttons' : 'gestures'; savePrefs(); applyNav(); }
@@ -529,7 +596,7 @@ function contactSortKey(c) { return c.t ? c.t.d * 1440 + c.t.h * 60 + c.t.m : -1
 
 function renderMessages(force) {
   if (currentApp !== 'messages') return;
-  if (chatOpen) { renderChat(force); return; }
+  if (chatOpen) { renderChat(force); if (!isDesk()) return; }
   const g = game();
   renderCommTabs();
   if (commTab !== 'messages') return;
@@ -538,11 +605,11 @@ function renderMessages(force) {
   const list = (g.contacts || []).filter((c) => c.messages || c.preview)
     .sort((a, b) => (waiting(b) - waiting(a)) || (contactSortKey(b) - contactSortKey(a)));
   const today = (g.player || {}).day;
-  const key = JSON.stringify([list, LANG]);
+  const key = JSON.stringify([list, LANG, chatOpen]);
   if (!force && key === lastMsgListKey) return;
   lastMsgListKey = key;
   const item = (c) => `
-    <li class="conv${c.unread ? ' unread' : ''}${waiting(c) ? '' : ' read'}" data-id="${esc(c.id)}"${c._o ? ` style="opacity:${c._o}"` : ''}>
+    <li class="conv${c.unread ? ' unread' : ''}${waiting(c) ? '' : ' read'}${c.id === chatOpen ? ' is-sel' : ''}" data-id="${esc(c.id)}"${c._o ? ` style="opacity:${c._o}"` : ''}>
       <div class="avatar">${avatarHtml(c)}</div>
       <div class="conv-main">
         <div class="conv-top"><span class="conv-name">${esc(c.name)}</span><span class="conv-time">${esc(timeLabel(c.t, today))}</span></div>
@@ -614,11 +681,13 @@ function msgToast(c) {
 let commTab = 'messages';
 function renderCommTabs() {
   const unread = (game().contacts || []).reduce((n, c) => n + (c.unread || 0), 0);
-  $('comm-tabs').hidden = !!chatOpen;
+  const listOff = !!chatOpen && !isDesk();
+  $('comm-tabs').hidden = listOff;
+  if ($('chat-empty')) $('chat-empty').hidden = !isDesk() || !!chatOpen;
   for (const b of document.querySelectorAll('#comm-tabs .seg-b')) b.classList.toggle('is-active', b.dataset.ct === commTab);
   $('comm-unread').textContent = unread || '';
-  $('msg-list').hidden = !!chatOpen || commTab !== 'messages';
-  $('comm-contacts').hidden = !!chatOpen || commTab !== 'contacts';
+  $('msg-list').hidden = listOff || commTab !== 'messages';
+  $('comm-contacts').hidden = listOff || commTab !== 'contacts';
 }
 $('comm-tabs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-ct]');
@@ -630,14 +699,14 @@ $('comm-tabs').addEventListener('click', (e) => {
 });
 
 function openChat(id) {
+  const prevChat = chatOpen;
   chatOpen = id;
   lastChatKey = '';
   pendingReply = null;
   lastGoodThread = null;
   $('chat').hidden = false;
-  $('msg-list').hidden = true;
-  $('comm-tabs').hidden = true;
-  $('comm-contacts').hidden = true;
+  renderCommTabs();
+  for (const li of document.querySelectorAll('#msg-list .conv')) li.classList.toggle('is-sel', li.dataset.id === id);
   const c = contactById(id) || { name: '' };
   $('appbar-title').innerHTML = `<span class="chat-head"><span class="avatar avatar-sm">${avatarHtml(c)}</span><span>${esc(c.name)}</span></span>`;
   $('appbar-action').innerHTML = c.callable ? `<button class="appbar-btn" id="chat-call"><svg viewBox="0 0 24 24"><use href="#i-phone"/></svg></button>` : '';
@@ -646,7 +715,8 @@ function openChat(id) {
   $('chat-body').innerHTML = `<div class="chat-loading dim">${t('loading')}</div>`;
   $('chat-replies').innerHTML = '';
   cmd('thread', id);
-  history.pushState({ app: 'messages', chat: id }, '', '#messages/' + encodeURIComponent(id));
+  // no desktop, trocar de conversa não empilha o histórico
+  history[prevChat ? 'replaceState' : 'pushState']({ app: 'messages', chat: id }, '', '#messages/' + encodeURIComponent(id));
 }
 function closeChat(fromHistory) {
   if (!chatOpen) return;
@@ -923,7 +993,7 @@ function shardCat(c) {
 // o texto do jogo traz as quebras de linha como barra-n literal
 function shardText(x) { return fixNl(x); }
 function renderShards() {
-  if (shardOpen) return;
+  if (shardOpen && !isDesk()) return;
   const q = shardQuery.trim().toLowerCase();
   const list = shards.filter((s) => !q || (s.title || '').toLowerCase().includes(q) || (s.text || '').toLowerCase().includes(q));
   const groups = new Map();
@@ -939,7 +1009,7 @@ function renderShards() {
     const news = items.filter((s) => s.read === false).length;
     return `
     <li class="shard-cat${open ? ' open' : ''}" data-cat="${esc(cat)}"><span class="fold-chev">›</span><span class="sc-name">${esc(cat)}</span>${news ? `<i class="sc-new">${news}</i>` : ''}<b>${items.length}</b></li>
-    ${open ? items.map((s) => `<li class="shard-row${s.read === false ? ' new' : ''}" data-id="${esc(s.id)}">
+    ${open ? items.map((s) => `<li class="shard-row${s.read === false ? ' new' : ''}${s.id === shardOpen ? ' is-sel' : ''}" data-id="${esc(s.id)}">
       <svg viewBox="0 0 24 24"><use href="#i-shard"/></svg>
       <div class="shard-main"><b>${esc(s.title || '—')}</b><small>${esc(shardText(s.text).replace(/\s+/g, ' ').slice(0, 90))}</small></div>
     </li>`).join('') : ''}`;
@@ -948,11 +1018,10 @@ function renderShards() {
 function openShard(id) {
   const s = shards.find((x) => x.id === id);
   if (!s) return;
+  const prevShard = shardOpen;
   shardOpen = id;
-  $('shard-list').hidden = true;
-  $('shard-search').hidden = true;
-  $('shard-savebar').hidden = true;
-  $('shard-reader').hidden = false;
+  syncSplit();
+  for (const r of document.querySelectorAll('#shard-list .shard-row')) r.classList.toggle('is-sel', r.dataset.id === id);
   $('shard-cat').textContent = shardCat(s.cat);
   $('shard-title').textContent = s.title || '';
   // parágrafos: o texto do jogo usa quebras de linha simples
@@ -960,15 +1029,12 @@ function openShard(id) {
   $('shard-text').style.fontSize = shardFont + 'px';
   $('shard-reader').scrollTop = 0;
   if (s.read === false) { s.read = true; if (!shardsFromSave) cmd('shard_read', id); }
-  history.pushState({ app: 'shards', shard: id }, '', '#shards/' + encodeURIComponent(id));
+  history[prevShard ? 'replaceState' : 'pushState']({ app: 'shards', shard: id }, '', '#shards/' + encodeURIComponent(id));
 }
 function closeShard(fromHistory) {
   if (!shardOpen) return;
   shardOpen = null;
-  $('shard-reader').hidden = true;
-  $('shard-list').hidden = false;
-  $('shard-search').hidden = false;
-  $('shard-savebar').hidden = false;
+  syncSplit();
   renderShards();
   if (!fromHistory && history.state && history.state.shard) history.back();
 }
@@ -1055,3 +1121,4 @@ window.onAckExtra = function (a, action) {
   if (want && OS.apps.some((a) => a.id === want)) setTimeout(() => openApp(want, { noAnim: true }), 0);
   else setTimeout(() => goHome(true), 0);
 })();
+applyLayout();

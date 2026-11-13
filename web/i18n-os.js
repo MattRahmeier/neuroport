@@ -113,4 +113,16 @@ Object.assign(I18N.pt, {
   immAll: 'Esconder tudo', immAllDesc: 'Desliga todos os elementos do HUD abaixo de uma vez (ligado = tudo escondido).',
   wallAdjust: 'AJUSTAR ENQUADRAMENTO', wallAdjustHint: 'Arraste para mover · pinça ou o controle para dar zoom', wallReset: 'CENTRALIZAR', wallDone: 'PRONTO',
 });
+Object.assign(I18N.en, {
+  setLayout: 'Layout', setLayoutDesc: 'Desktop shows a side menu and split screens on big screens. Auto picks by screen width.',
+  layoutAuto: 'AUTO', layoutPhone: 'PHONE', layoutDesk: 'DESKTOP', appHome: 'Home',
+  pickChat: 'Pick a conversation on the left.', pickShard: 'Pick a shard on the left to read it.',
+  sideLive: 'LINKED TO THE GAME', sideOff: 'WAITING FOR THE GAME',
+});
+Object.assign(I18N.pt, {
+  setLayout: 'Layout', setLayoutDesc: 'Desktop mostra um menu lateral e telas divididas em telas grandes. Auto escolhe pela largura da tela.',
+  layoutAuto: 'AUTO', layoutPhone: 'CELULAR', layoutDesk: 'DESKTOP', appHome: 'Início',
+  pickChat: 'Escolha uma conversa à esquerda.', pickShard: 'Escolha uma shard à esquerda para ler.',
+  sideLive: 'CONECTADO AO JOGO', sideOff: 'ESPERANDO O JOGO',
+});
 applyI18n();

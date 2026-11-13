@@ -536,3 +536,83 @@ body.app-open .action-bar { padding-bottom: 8px; }
 .we-btns .btn { flex: 1; }
 .set-row.imm-all { border-bottom: 1px solid var(--red-line); margin-bottom: 4px; }
 .set-row.imm-all b { color: #f7e05a; }
+
+/* ---------- modo desktop: menu lateral + telas divididas (body.desktop) ---------- */
+.sidebar, .split-empty { display: none; }
+body.desktop { --side-w: 232px; }
+body.desktop #app { max-width: none; padding: 10px 28px 0 calc(var(--side-w) + 28px); }
+body.desktop #app > .statusbar, body.desktop #app > .appbar, body.desktop #app > .panel { width: 100%; max-width: 1320px; margin-inline: auto; }
+body.desktop #app > .appbar { margin-bottom: 14px; }
+body.desktop #app > #panel-map { max-width: none; }
+body.desktop .navbar, body.desktop .homebar { display: none !important; }
+body.desktop .sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0; width: var(--side-w); z-index: 1;
+  display: flex; flex-direction: column; padding: 18px 12px 14px;
+  background: linear-gradient(180deg, rgba(255,97,88,.06), transparent 40%), #07080c;
+  border-right: 1px solid var(--red-line);
+}
+.side-brand { font: 700 15px var(--font); letter-spacing: .42em; color: var(--red); padding: 0 10px 16px; border-bottom: 1px solid var(--red-line); margin-bottom: 10px; text-shadow: 0 0 12px rgba(255,97,88,.45); }
+.side-apps { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; scrollbar-width: thin; scrollbar-color: var(--red-line) transparent; }
+.side-app {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 10px; text-align: left;
+  font: 600 15px var(--font); letter-spacing: .08em; color: #f3e3e1; border-left: 2px solid transparent;
+}
+.side-app .side-ico { width: 30px; height: 30px; display: grid; place-items: center; flex: none; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 10%, transparent); }
+.side-app .side-ico svg { width: 18px; height: 18px; }
+.side-app .side-ico img { width: 22px; height: 22px; object-fit: contain; }
+.side-app span.side-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-app b { min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center; font: 700 12px var(--mono); color: var(--bg); background: var(--cyan); }
+.side-app:hover { background: var(--red-faint); }
+.side-app.is-active { border-left-color: var(--c); background: linear-gradient(90deg, color-mix(in srgb, var(--c) 16%, transparent), transparent); color: #fff; }
+.side-sep { height: 1px; background: var(--red-line); margin: 6px 4px; }
+.side-foot { padding: 12px 8px 0; border-top: 1px solid var(--red-line); }
+.side-link { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .18em; color: var(--red-dim); }
+.side-link i { width: 8px; height: 8px; background: currentColor; transform: rotate(45deg); }
+.side-link.on { color: var(--cyan); }
+.side-link.on i { box-shadow: 0 0 8px var(--cyan); }
+
+/* tela inicial: sem grade de ícones (o menu lateral faz isso); widgets em colunas */
+body.desktop .home-grid, body.desktop .home-dock { display: none; }
+body.desktop .widgets { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; max-width: 1000px; margin: 0 auto 18px; width: 100%; }
+body.desktop .home-clock { padding: 40px 0 28px; }
+
+/* telas divididas: lista à esquerda, conteúdo à direita */
+.split-empty { flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; color: var(--text-dim); font-size: 15px; letter-spacing: .06em; border: 1px dashed var(--red-line); }
+.split-empty svg { width: 42px; height: 42px; color: var(--red-dim); opacity: .6; }
+body.desktop .split-empty:not([hidden]) { display: flex; }
+body.desktop #panel-messages { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: 22px; }
+body.desktop #panel-messages[hidden] { display: none; }
+body.desktop #comm-tabs { grid-column: 1; grid-row: 1; }
+body.desktop #msg-list, body.desktop #comm-contacts { grid-column: 1; grid-row: 2; overflow-y: auto; min-height: 0; }
+body.desktop #chat, body.desktop #chat-empty { position: static; grid-column: 2; grid-row: 1 / span 2; min-height: 0; margin-bottom: 14px; }
+body.desktop #chat { padding: 0 4px; border-left: 1px solid var(--red-line); padding-left: 18px; }
+body.desktop .conv.is-sel { background: linear-gradient(90deg, rgba(94,246,255,.14), transparent); box-shadow: inset 2px 0 var(--cyan); }
+body.desktop .bubble { max-width: 70%; }
+
+body.desktop #panel-shards { display: grid; grid-template-columns: minmax(320px, 420px) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); column-gap: 22px; }
+body.desktop #panel-shards[hidden] { display: none; }
+body.desktop #shard-search { grid-column: 1; grid-row: 1; }
+body.desktop #shard-savebar { grid-column: 1; grid-row: 2; }
+body.desktop #shard-list { grid-column: 1; grid-row: 3; overflow-y: auto; min-height: 0; }
+body.desktop #shard-reader, body.desktop #shard-empty { grid-column: 2; grid-row: 1 / span 3; min-height: 0; margin-bottom: 14px; }
+body.desktop #shard-reader { padding: 6px 28px 28px; border-left: 1px solid var(--red-line); }
+body.desktop #shard-text { max-width: 760px; }
+body.desktop .shard-row.is-sel { background: linear-gradient(90deg, rgba(43,240,192,.14), transparent); box-shadow: inset 2px 0 #2bf0c0; }
+
+/* galeria e listas mais largas */
+body.desktop .cam-gallery { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+
+/* modo carro: mapa à esquerda, controles à direita */
+body.desktop .car { padding: 16px 24px; }
+body.desktop .car-body { flex-direction: row; gap: 18px; }
+body.desktop .car-map { flex: 1 1 auto; min-height: 0; }
+body.desktop .car-panel { flex: 0 0 400px; max-height: none; }
+
+/* janelas (folhas) centralizadas */
+body.desktop .sheet-wrap { align-items: center; }
+body.desktop .headsup { left: var(--side-w); }
+body.desktop .toasts { left: var(--side-w); }
+
+/* cursor de mouse */
+body.desktop .conv, body.desktop .shard-row, body.desktop .shard-cat, body.desktop .side-app, body.desktop .row { cursor: pointer; }
+body.desktop .shard-tools > span { display: flex; gap: 6px; }

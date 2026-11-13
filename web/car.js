@@ -15,7 +15,8 @@ function mountMap(where) {
     m.mount($('car-map'));
     // como o minimapa do jogo: visto de cima, sem prédios, girando com o carro
     m.setFlat(true);
-    m.setMode({ headingUp: true, elev: 89.5, dist: 380, follow: true });
+    // tela grande (desktop): começa mais afastado para mostrar mais ruas
+    m.setMode({ headingUp: true, elev: 89.5, dist: typeof isDesk === 'function' && isDesk() ? 560 : 380, follow: true });
     m.setVisible(true);
   } else {
     m.mount($('map3d-host'));

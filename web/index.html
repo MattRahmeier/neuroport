@@ -42,6 +42,12 @@
 
   <!-- ============ APP ============ -->
   <main id="app" hidden>
+    <!-- ===== Desktop: menu lateral (só em telas grandes) ===== -->
+    <nav class="sidebar" id="sidebar" aria-label="apps">
+      <div class="side-brand">NEUROPORT</div>
+      <div class="side-apps" id="side-apps"></div>
+      <div class="side-foot"><span class="side-link" id="side-link"><i></i><span id="side-link-txt"></span></span></div>
+    </nav>
     <!-- ===== Neuroport OS: barra de status ===== -->
     <div class="statusbar" id="statusbar">
       <span class="sb-time" id="sb-time">--:--</span>
@@ -277,6 +283,7 @@
         <ul class="list" id="contacts"></ul>
         <p class="empty dim" id="contacts-empty" data-i18n="noContacts" hidden></p>
       </div>
+      <div class="split-empty" id="chat-empty"><svg viewBox="0 0 24 24"><use href="#i-chat"/></svg><span data-i18n="pickChat"></span></div>
       <div class="chat" id="chat" hidden>
         <div class="chat-body" id="chat-body"></div>
         <div class="chat-replies" id="chat-replies"></div>
@@ -321,6 +328,7 @@
         <small class="dim" id="shard-save-info"></small>
       </div>
       <ul class="conv-list shard-list" id="shard-list"></ul>
+      <div class="split-empty" id="shard-empty"><svg viewBox="0 0 24 24"><use href="#i-shard"/></svg><span data-i18n="pickShard"></span></div>
       <article class="shard-reader" id="shard-reader" hidden>
         <div class="shard-tools"><span class="tag" id="shard-cat"></span>
           <span><button class="net-btn" data-font="-1">A−</button><button class="net-btn" data-font="1">A+</button></span></div>
@@ -584,6 +592,7 @@
     <symbol id="i-signal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M12 20v-6m-4 6v-3m8 3V10m4 10V6M4 20v-1"/></symbol>
     <symbol id="i-gig" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="bevel" d="M12 2 21 7v10l-9 5-9-5V7zM12 7v5m0 3v1"/></symbol>
     <symbol id="i-map" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="bevel" d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15m6-12v15"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="bevel" d="M3 11 12 3l9 8M5 9.5V21h5v-6h4v6h5V9.5"/></symbol>
     <symbol id="i-pin" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="bevel" d="M12 22s-7-7.5-7-13a7 7 0 0 1 14 0c0 5.5-7 13-7 13zm0-10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></symbol>
     <symbol id="i-journal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="bevel" d="M5 3h11l3 3v15H5zM9 8h6M9 12h6M9 16h4"/></symbol>
     <symbol id="i-filter" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="bevel" d="M3 5h18l-7 8v6l-4 2v-8z"/></symbol>
