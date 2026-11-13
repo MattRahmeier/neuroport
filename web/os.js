@@ -23,7 +23,7 @@ const OS = {
 
 // ---------- preferências do celular ----------
 const PREF_KEY = 'neuroport.prefs';
-const prefs = Object.assign({ autoCar: true, ring: true, vibrate: true, mapMode: 'active', nav: 'buttons', navSide: 'left', layout: 'auto' },
+const prefs = Object.assign({ autoCar: true, ring: true, vibrate: true, mapMode: 'active', nav: 'buttons', navSide: 'left', layout: 'auto', awake: false },
   (() => { try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch { return {}; } })());
 function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch { /* ok */ } }
 
@@ -236,6 +236,46 @@ $('side-apps').addEventListener('click', (e) => {
   if (!b) return;
   if (b.dataset.app === 'home') goHome(); else launchApp(b.dataset.app);
 });
+
+// ---------- tela sempre acesa ----------
+// A Wake Lock API só existe em HTTPS/localhost. Pela rede de casa (HTTP) um vídeo mudo em loop faz o
+// mesmo: o Chrome só mantém a tela acesa por um vídeo mudo se ele ocupar boa parte da tela, por isso
+// ele cobre a tela inteira, quase transparente e atrás de tudo.
+const AWAKE_SRC = 'data:video/mp4;base64,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IGNocm9tYV9tZT0xIHRyZWxsaXM9MiA4eDhkY3Q9MCBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tNCB0aHJlYWRzPTIgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0wIHdlaWdodHA9MCBrZXlpbnQ9MjUwIGtleWludF9taW49MSBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTYwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMjAAgAAAABtliIIC+c///4eigACrz5OTk6666666666668ABGCAHARggBwEYIAcBGCAHARggBwEYIAcBGCAHARggBwAAAAdBmhwF85wjARggBwEYIAcBGCAHARggBwEYIAcBGCAHARggBwEYIAc=';
+let wakeLock = null, wakeVid = null;
+function awakeActive() { return !!wakeLock || !!(wakeVid && !wakeVid.paused); }
+async function syncAwake() {
+  const want = !!prefs.awake && !document.hidden;
+  if (!want) {
+    if (wakeLock) { try { wakeLock.release(); } catch { /* ok */ } wakeLock = null; }
+    if (wakeVid) wakeVid.pause();
+    return;
+  }
+  if (awakeActive()) return;
+  if (window.isSecureContext && navigator.wakeLock) {
+    try {
+      const l = await navigator.wakeLock.request('screen');
+      wakeLock = l;
+      l.addEventListener('release', () => { if (wakeLock === l) wakeLock = null; });
+      return;
+    } catch { /* cai no vídeo */ }
+  }
+  if (!wakeVid) {
+    wakeVid = document.createElement('video');
+    wakeVid.setAttribute('playsinline', '');
+    wakeVid.setAttribute('muted', '');
+    wakeVid.setAttribute('aria-hidden', 'true');
+    wakeVid.muted = true;
+    wakeVid.loop = true;
+    wakeVid.src = AWAKE_SRC;
+    wakeVid.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;opacity:.01;pointer-events:none;z-index:-1;object-fit:cover';
+    document.body.appendChild(wakeVid);
+  }
+  try { await wakeVid.play(); } catch { /* o navegador pede um toque antes: tenta de novo no próximo */ }
+}
+document.addEventListener('visibilitychange', syncAwake);
+// os navegadores só deixam o vídeo tocar depois de um toque na tela
+document.addEventListener('pointerdown', () => { if (prefs.awake && !awakeActive()) syncAwake(); }, true);
 
 // gesto: deslizar para cima na barra de baixo volta para a tela inicial
 (() => {
@@ -477,6 +517,7 @@ function renderSettings() {
       ${canFullscreen() ? row('fullscreen', t('setFullscreen'), t('setFullscreenDesc'), isFullscreen()) : ''}
       ${row('layout', t('setLayout'), t('setLayoutDesc'), false,
         `<span class="seg">${['auto', 'phone', 'desktop'].map((v) => `<span class="seg-b${(prefs.layout || 'auto') === v ? ' is-active' : ''}" data-lay="${v}">${t(v === 'auto' ? 'layoutAuto' : v === 'phone' ? 'layoutPhone' : 'layoutDesk')}</span>`).join('')}</span>`)}
+      ${row('awake', t('setAwake'), t('setAwakeDesc'), !!prefs.awake)}
       ${row('autoCar', t('setAutoCar'), t('setAutoCarDesc'), prefs.autoCar)}
       ${row('ring', t('setRing'), t('setRingDesc'), prefs.ring)}
       ${row('vibrate', t('setVibrate'), t('setVibrateDesc'), prefs.vibrate)}
@@ -558,6 +599,7 @@ $('settings-list').addEventListener('click', (e) => {
   else if (id === 'navSide') { prefs.navSide = prefs.navSide === 'right' ? 'left' : 'right'; savePrefs(); applyNav(); }
   else if (id === 'mapMode') { prefs.mapMode = prefs.mapMode === 'all' ? 'active' : 'all'; savePrefs(); lastGigsKey = ''; renderMap(); }
   else if (id === 'forget') { if (confirm(t('setForgetDesc'))) { store(KEY_STORE, null); store('holophone.key', null); location.reload(); } return; }
+  else if (id === 'awake') { prefs.awake = !prefs.awake; savePrefs(); syncAwake(); }
   else if (id in prefs) { prefs[id] = !prefs[id]; savePrefs(); }
   renderSettings();
 });
@@ -1122,3 +1164,4 @@ window.onAckExtra = function (a, action) {
   else setTimeout(() => goHome(true), 0);
 })();
 applyLayout();
+syncAwake();

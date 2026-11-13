@@ -51,28 +51,83 @@ function gameDirs() {
     'C:\\GOG Games\\Cyberpunk 2077', path.join(pf, 'Epic Games', 'Cyberpunk2077'), path.join(pf, 'Epic Games', 'Cyberpunk 2077'));
   return out;
 }
-function findBridge() {
-  const forced = opt('--bridge', process.env.NEUROPORT_BRIDGE || '');
-  if (forced) return forced;
-  // servidor instalado dentro da pasta do mod
+const isGame = (g) => fs.existsSync(path.join(g, 'archive', 'pc', 'content'));
+// pasta do mod onde o próprio servidor está (pacote: mods/neuroport/companion/server)
+function ownModDir() {
   const parts = path.resolve(__dirname).split(path.sep);
   const i = parts.map((p) => p.toLowerCase()).lastIndexOf('neuroport');
   if (i > 0 && parts[i - 1].toLowerCase() === 'mods' && fs.existsSync(path.join(parts.slice(0, i + 1).join(path.sep), 'init.lua'))) {
     return parts.slice(0, i + 1).join(path.sep);
   }
-  for (const g of gameDirs()) {
-    const cet = path.join(g, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks');
-    if (fs.existsSync(cet)) return path.join(g, MOD_SUBPATH);
-  }
-  return path.join(gameDirs()[0], MOD_SUBPATH);
+  return null;
 }
-const BRIDGE = findBridge();
+// Mod Organizer 2: o pacote fica em <MO2>\mods\<nome>\bin\x64\...\neuroport e o jogo enxerga uma pasta
+// virtual. Os arquivos que o mod cria (state.json etc.) vão para <MO2>\overwrite\bin\x64\...\neuroport,
+// que o servidor (rodando fora do MO2) precisa ler.
+function mo2Root(modDir) {
+  if (!modDir) return null;
+  const parts = modDir.split(path.sep);
+  const n = MOD_SUBPATH.split(path.sep).length;
+  const top = parts.slice(0, parts.length - n);              // <MO2>\mods\<nome>
+  if (top.length < 3 || top[top.length - 2].toLowerCase() !== 'mods') return null;
+  const root = top.slice(0, -2).join(path.sep);
+  if (!fs.existsSync(path.join(root, 'overwrite')) && !fs.existsSync(path.join(root, 'ModOrganizer.ini'))) return null;
+  return root;
+}
+// pasta do jogo configurada no MO2 (gamePath=@ByteArray(D:\\Games\\Cyberpunk 2077))
+function mo2GamePath(root) {
+  try {
+    const ini = fs.readFileSync(path.join(root, 'ModOrganizer.ini'), 'utf8');
+    const m = ini.match(/^gamePath\s*=\s*(?:@ByteArray\()?(.*?)\)?\s*$/m);
+    if (m && m[1]) return m[1].replace(/\\\\/g, '\\').replace(/\//g, '\\');
+  } catch { /* sem ini */ }
+  return null;
+}
+const OWN_MOD = ownModDir();
+const MO2 = mo2Root(OWN_MOD);
+function findGameDir() {
+  const fromMo2 = MO2 && mo2GamePath(MO2);
+  if (fromMo2 && isGame(fromMo2)) return fromMo2;
+  if (OWN_MOD && !MO2) {
+    const up = path.resolve(OWN_MOD, '..', '..', '..', '..', '..', '..');
+    if (isGame(up)) return up;
+  }
+  return gameDirs().find((g) => fs.existsSync(path.join(g, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks'))) ||
+    gameDirs().find(isGame) || gameDirs()[0];
+}
 // pasta do jogo (para o extrator de imagens ler os arquivos .archive)
-const GAME_DIR = path.resolve(BRIDGE, '..', '..', '..', '..', '..', '..');
+const GAME_DIR = findGameDir();
+// Pastas onde o mod pode estar gravando (ponte de arquivos). Em geral é uma só; com MO2 (ou com o
+// servidor aberto pela pasta de staging do Vortex) o jogo grava em outro lugar. O servidor lê da
+// pasta com o state.json mais recente e escreve o inbox.txt em todas.
+function findBridges() {
+  const forced = opt('--bridge', process.env.NEUROPORT_BRIDGE || '');
+  if (forced) return [forced];
+  const out = [];
+  const add = (d) => { if (d && !out.some((x) => x.toLowerCase() === d.toLowerCase())) out.push(d); };
+  add(OWN_MOD);
+  if (MO2) add(path.join(MO2, 'overwrite', MOD_SUBPATH));
+  const inGame = path.join(GAME_DIR, MOD_SUBPATH);
+  if (!out.length || fs.existsSync(inGame)) add(inGame);
+  return out;
+}
+const BRIDGES = findBridges();
+const BRIDGE = BRIDGES[0];
+// pasta que o jogo está usando agora: a do state.json mais novo
+let activeBridge = BRIDGE;
+function pickBridge() {
+  let best = null, bestT = -1;
+  for (const d of BRIDGES) {
+    try { const t = fs.statSync(path.join(d, 'state.json')).mtimeMs; if (t > bestT) { bestT = t; best = d; } } catch { /* ainda não */ }
+  }
+  if (best && best !== activeBridge) {
+    activeBridge = best;
+    console.log('  Mod conectado pela pasta: ' + best);
+  }
+  return activeBridge;
+}
 const WEB_DIR = path.join(__dirname, '..', 'web');
-const INBOX = path.join(BRIDGE, 'inbox.txt');
-const STATE = path.join(BRIDGE, 'state.json');
-const WORLD = path.join(BRIDGE, 'world.json'); // marcadores + diário (atualiza a cada ~3s)
+const bridgeFile = (name) => path.join(activeBridge, name);
 const STALE_MS = 4000; // sem atualização do mod por mais que isso => jogo "offline"
 
 // ---------- log (também aparece no painel do servidor) ----------
@@ -144,18 +199,26 @@ function writeInbox() {
   const body = pending
     .map((c) => `${c.id}\t${c.action}\t${String(c.arg ?? '').replace(/[\t\r\n]/g, ' ')}`)
     .join('\n');
-  const tmp = INBOX + '.tmp';
-  try {
-    fs.writeFileSync(tmp, body + (body ? '\n' : ''), 'utf8');
-    fs.renameSync(tmp, INBOX);
-  } catch (e) {
-    // O mod pode estar lendo o arquivo neste instante; tenta de novo em breve.
-    setTimeout(writeInbox, 60);
+  let retry = false;
+  // em todas as pastas possíveis: com o MO2 não dá para saber qual delas o jogo está lendo
+  for (const dir of BRIDGES) {
+    if (dir !== BRIDGE && !fs.existsSync(dir)) continue;
+    const inbox = path.join(dir, 'inbox.txt');
+    const tmp = inbox + '.tmp';
+    try {
+      fs.writeFileSync(tmp, body + (body ? '\n' : ''), 'utf8');
+      fs.renameSync(tmp, inbox);
+    } catch (e) {
+      // O mod pode estar lendo o arquivo neste instante; tenta de novo em breve.
+      retry = true;
+    }
   }
+  if (retry) setTimeout(writeInbox, 60);
 }
 
 const seenAcks = new Set();
 function pollWorld() {
+  const WORLD = bridgeFile('world.json'); // marcadores + diário (atualiza a cada ~3s)
   let st;
   try { st = fs.statSync(WORLD); } catch { return; }
   if (st.mtimeMs === worldMtime) return;
@@ -166,8 +229,11 @@ function pollWorld() {
   } catch { /* no meio de uma escrita */ }
 }
 
+let lastPick = 0;
 function pollState() {
+  if (BRIDGES.length > 1 && Date.now() - lastPick > 2000) { lastPick = Date.now(); pickBridge(); }
   pollWorld();
+  const STATE = bridgeFile('state.json');
   let st;
   try { st = fs.statSync(STATE); } catch { broadcast(); return; }
   if (st.mtimeMs !== stateMtime) {
@@ -378,7 +444,7 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/api/shards') {
     if (!authed(req, url)) { res.writeHead(401); return res.end(); }
     let txt = '{"shards":[]}';
-    try { txt = fs.readFileSync(path.join(BRIDGE, 'shards.json'), 'utf8').replace(/^\uFEFF/, ''); } catch { /* ainda não existe */ }
+    try { txt = fs.readFileSync(bridgeFile('shards.json'), 'utf8').replace(/^\uFEFF/, ''); } catch { /* ainda não existe */ }
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
     return res.end(txt);
   }
@@ -409,7 +475,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({
         mock: MOCK, port: PORT, token: TOKEN, ips: lanAddresses(), uptime: Date.now() - startedAt,
-        bridge: BRIDGE, bridgeExists: fs.existsSync(BRIDGE),
+        bridge: activeBridge, bridgeExists: fs.existsSync(activeBridge), mo2: !!MO2,
         online: snap.online, inGame: !!g.inGame, mod: g.mod || null, lang: g.lang || null, immersive: !!g.immersive, immHud: g.immHud || [],
         player: g.player || null, district: g.district || null, vehicle: g.vehicle || null,
         counts: { pois: (g.pois || []).length, contacts: (g.contacts || []).length, quests: ((g.journal || {}).quests || []).length, offers: (g.offers || []).length },
@@ -441,7 +507,7 @@ const server = http.createServer(async (req, res) => {
         spawn('cmd', ['/c', 'start', '', `http://localhost:${PORT}/?k=${TOKEN}`], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
         res.writeHead(204); return res.end();
       }
-      const target = which === 'photos' ? (PHOTO_DIRS.find((d) => fs.existsSync(d)) || PHOTO_DIRS[0]) : which === 'project' ? path.join(__dirname, '..') : BRIDGE;
+      const target = which === 'photos' ? (PHOTO_DIRS.find((d) => fs.existsSync(d)) || PHOTO_DIRS[0]) : which === 'project' ? path.join(__dirname, '..') : activeBridge;
       spawn('explorer', [target], { detached: true, stdio: 'ignore' }).unref();
       res.writeHead(204); return res.end();
     }
@@ -584,7 +650,7 @@ function ensureRingtone() {
   if (fs.existsSync(RINGTONE)) return;
   const script = path.join(__dirname, '..', 'tools', 'gamefiles', 'extract_ringtone.py');
   const run = (cmd) => new Promise((res) => {
-    const p = spawn(cmd, ['-I', script, RINGTONE], { windowsHide: true });
+    const p = spawn(cmd, ['-I', script, RINGTONE], { windowsHide: true, env: { ...process.env, NEUROPORT_GAME: GAME_DIR } });
     p.stdout.on('data', (d) => process.stdout.write('  [toque] ' + d));
     p.stderr.on('data', (d) => process.stdout.write('  [toque] ' + d));
     p.on('error', () => res(false));
@@ -616,6 +682,13 @@ server.on('error', (e) => {
     setTimeout(() => server.listen(PORT, '0.0.0.0'), 300);
     return;
   }
+  if (e.code === 'EADDRINUSE') {
+    console.log('');
+    console.log(`  !! Port ${PORT} is already in use: Neuroport is probably already running (check the other window).`);
+    console.log(`  !! A porta ${PORT} já está em uso: o Neuroport provavelmente já está aberto em outra janela.`);
+    console.log('');
+    process.exit(1);
+  }
   throw e;
 });
 
@@ -629,6 +702,11 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log('  Modo SIMULAÇÃO (--mock): nenhum jogo necessário.');
   } else {
     console.log('  Pasta do mod: ' + BRIDGE);
+    if (MO2) {
+      console.log('  Mod Organizer 2: ' + MO2);
+      console.log('    (também lendo ' + path.join(MO2, 'overwrite', MOD_SUBPATH) + ')');
+    }
+    console.log('  Pasta do jogo: ' + GAME_DIR);
     if (!fs.existsSync(BRIDGE)) {
       console.log('  !! Pasta do mod não encontrada. Rode install.ps1 ou use --bridge <pasta>.');
     }
@@ -657,6 +735,7 @@ if (MOCK) {
   setInterval(() => { mock.tick(0.4); gameState = mock.state(); broadcast(); }, 400);
 } else {
   try { fs.mkdirSync(BRIDGE, { recursive: true }); } catch { /* sem permissão: avisado acima */ }
-  try { fs.writeFileSync(INBOX, ''); } catch { /* ok */ }
+  for (const d of BRIDGES) { try { if (fs.existsSync(d)) fs.writeFileSync(path.join(d, 'inbox.txt'), ''); } catch { /* ok */ } }
+  pickBridge();
   setInterval(pollState, 250);
 }

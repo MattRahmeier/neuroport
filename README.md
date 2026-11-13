@@ -8,7 +8,7 @@
 
 **For the Linux version:** [Nastas95/neuroport-linux](https://github.com/Nastas95/neuroport-linux). This release is for Windows.
 
-**[Download Neuroport 1.1 (zip, 7.9 MB)](https://github.com/MattRahmeier/neuroport/releases/latest/download/Neuroport-1.1.zip)** from the [latest release](https://github.com/MattRahmeier/neuroport/releases/latest). It will also be on Nexus Mods once it passes review.
+**[Download Neuroport 1.1.1 (zip, 7.9 MB)](https://github.com/MattRahmeier/neuroport/releases/latest/download/Neuroport-1.1.1.zip)** from the [latest release](https://github.com/MattRahmeier/neuroport/releases/latest). It will also be on Nexus Mods once it passes review.
 
 **Install these first:**
 
@@ -19,9 +19,11 @@
 
 **Then:**
 
-1. Extract `Neuroport-1.1.zip` into the game folder (the one with `bin` and `archive`), or drag the zip into Vortex / Mod Organizer 2.
+1. Extract `Neuroport-1.1.1.zip` into the game folder (the one with `bin` and `archive`), or drag the zip into Vortex / Mod Organizer 2.
 2. Run `bin\x64\plugins\cyber_engine_tweaks\mods\neuroport\companion\Start Neuroport.bat`. Allow Node.js on **private networks** when Windows Firewall asks.
 3. The control panel opens on the PC. Scan its QR code with your phone (same Wi-Fi), and load a save.
+
+**Mod Organizer 2:** the `.bat` is in MO2's mods folder (right-click Neuroport in MO2 → *Open in Explorer*). Start the game from MO2 as usual; the server finds MO2's `overwrite` folder by itself. If the game was already open the first time you started the server, restart the game once.
 
 Windows may warn that the `.bat` file came from the internet: it only runs `node server\server.js --gui` (see [About the scripts](#about-the-scripts)).
 
@@ -40,6 +42,7 @@ Windows may warn that the `.bat` file came from the internet: it only runs `node
 - **Quick Gig and journal:** nearest gigs and NCPD jobs, track or untrack any job.
 - **Radio, shards and status:** stations and volume, a shard reader, level and attributes.
 - **Immersive mode:** hide the HUD piece by piece or all at once, photo mode, wallpaper from your game photos.
+- **Keep screen on:** Settings → Keep screen on stops the phone from going to sleep while the app is open.
 - **Desktop mode:** on a PC, tablet or second monitor (1000 px or wider) the app switches to a side menu with split-screen Comms and Shards and a two-column car mode. Settings → Layout lets you force Phone or Desktop.
 
 ## How it works

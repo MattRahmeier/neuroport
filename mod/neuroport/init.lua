@@ -6,7 +6,7 @@
 -- o recurso afetado para de funcionar mas o resto continua. Os erros aparecem
 -- no console do CET e na janelinha "Neuroport" do overlay.
 
-local VERSION = "1.1"
+local VERSION = "1.1.1"
 local INBOX = "inbox.txt"
 local STATE = "state.json"
 
@@ -2257,9 +2257,20 @@ local function pushAck(id, ok, msg, action)
   while #acks > 20 do table.remove(acks, 1) end
 end
 
+local inboxMade = false
 local function readInbox()
   local f = io.open(INBOX, "r")
-  if not f then return {} end
+  if not f then
+    -- Com o MO2 (pasta virtual), um arquivo criado pelo servidor depois que o jogo abriu pode não
+    -- aparecer para o jogo. Criando o inbox.txt daqui ele entra na pasta virtual (overwrite do MO2)
+    -- e o servidor passa a escrever nele.
+    if not inboxMade then
+      inboxMade = true
+      local w = io.open(INBOX, "w")
+      if w then w:close() end
+    end
+    return {}
+  end
   local txt = f:read("*a") or ""
   f:close()
   local cmds = {}
