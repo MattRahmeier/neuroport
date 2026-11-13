@@ -8,7 +8,7 @@
 
 **For the Linux version:** [Nastas95/neuroport-linux](https://github.com/Nastas95/neuroport-linux). This release is for Windows.
 
-**[Download Neuroport 1.0 (zip, 7.9 MB)](https://github.com/MattRahmeier/neuroport/releases/latest/download/Neuroport-1.0.zip)** from the [latest release](https://github.com/MattRahmeier/neuroport/releases/latest). It will also be on Nexus Mods once it passes review.
+**[Download Neuroport 1.1 (zip, 7.9 MB)](https://github.com/MattRahmeier/neuroport/releases/latest/download/Neuroport-1.1.zip)** from the [latest release](https://github.com/MattRahmeier/neuroport/releases/latest). It will also be on Nexus Mods once it passes review.
 
 **Install these first:**
 
@@ -19,7 +19,7 @@
 
 **Then:**
 
-1. Extract `Neuroport-1.0.zip` into the game folder (the one with `bin` and `archive`), or drag the zip into Vortex / Mod Organizer 2.
+1. Extract `Neuroport-1.1.zip` into the game folder (the one with `bin` and `archive`), or drag the zip into Vortex / Mod Organizer 2.
 2. Run `bin\x64\plugins\cyber_engine_tweaks\mods\neuroport\companion\Start Neuroport.bat`. Allow Node.js on **private networks** when Windows Firewall asks.
 3. The control panel opens on the PC. Scan its QR code with your phone (same Wi-Fi), and load a save.
 

@@ -6,7 +6,7 @@
 -- o recurso afetado para de funcionar mas o resto continua. Os erros aparecem
 -- no console do CET e na janelinha "Neuroport" do overlay.
 
-local VERSION = "1.0"
+local VERSION = "1.1"
 local INBOX = "inbox.txt"
 local STATE = "state.json"
 
