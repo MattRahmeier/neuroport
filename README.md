@@ -6,6 +6,8 @@
 
 ## Download and install
 
+**For the Linux version:** [Nastas95/neuroport-linux](https://github.com/Nastas95/neuroport-linux). This release is for Windows.
+
 **[Download Neuroport 1.0 (zip, 7.9 MB)](https://github.com/MattRahmeier/neuroport/releases/latest/download/Neuroport-1.0.zip)** from the [latest release](https://github.com/MattRahmeier/neuroport/releases/latest). It will also be on Nexus Mods once it passes review.
 
 **Install these first:**
@@ -75,10 +77,6 @@ Requirements: Cyberpunk 2077 2.x on Windows, [Cyber Engine Tweaks](https://githu
 3. Open the control panel that appears, scan the QR code with your phone and load a save.
 
 Without the game, `start-mock.bat` serves the app with simulated data on port 7078 (pairing code `TEST01`).
-
-### Linux (experimental)
-
-The server also runs on Linux for Cyberpunk 2077 under Steam Proton: it looks for the game in native and Flatpak Steam libraries (and `~/Games/Heroic`), reads photos from the Proton prefix, opens the panel with `xdg-open` and sends the photo-mode key with `xdotool` (X11/XWayland). Start it with `node server/server.js --gui`, or pass `--bridge` if the game is elsewhere. This is untested on Linux so far. Portrait and vehicle-image extraction still needs the game's Windows Oodle DLL, so those images may not appear. For a full Linux setup with an installer, see [Nastas95/neuroport-linux](https://github.com/Nastas95/neuroport-linux).
 
 ### Game data (not in this repository)
 

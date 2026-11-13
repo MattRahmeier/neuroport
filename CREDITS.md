@@ -82,9 +82,9 @@ TOOLS USED TO MAKE THE MOD (not included)
 
 COMMUNITY
 ---------
-  Nastas95 (https://github.com/Nastas95/neuroport-linux): the Linux port and
-      the desktop layout ideas (side menu, split Comms and Shards, two-column
-      car mode) that this version's desktop mode and Linux support are based on.
+  Nastas95 (https://github.com/Nastas95/neuroport-linux): the Linux version,
+      and the desktop layout ideas (side menu, split Comms and Shards,
+      two-column car mode) that this version's desktop mode is based on.
 
 
 NEUROPORT

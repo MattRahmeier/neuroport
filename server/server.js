@@ -34,31 +34,10 @@ const PORT = Number(opt('--port', process.env.NEUROPORT_PORT || 7077));
 // servidor dentro da pasta do mod (pacote do Nexus: mods/neuroport/companion/server); Steam
 // (todas as bibliotecas), GOG e Epic.
 const MOD_SUBPATH = path.join('bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'neuroport');
-const IS_WIN = process.platform === 'win32';
-// Steam no Linux (o jogo roda pelo Proton): instalação nativa e Flatpak
-const LINUX_STEAM = IS_WIN ? [] : [
-  path.join(os.homedir(), '.steam', 'steam'),
-  path.join(os.homedir(), '.local', 'share', 'Steam'),
-  path.join(os.homedir(), '.var', 'app', 'com.valvesoftware.Steam', '.local', 'share', 'Steam'),
-];
-// bibliotecas da Steam (pasta steamapps de cada uma), lidas do libraryfolders.vdf
-function steamLibraries(root) {
-  const libs = [path.join(root, 'steamapps')];
-  try {
-    const vdf = fs.readFileSync(path.join(root, 'steamapps', 'libraryfolders.vdf'), 'utf8');
-    for (const m of vdf.matchAll(/"path"\s+"([^"]+)"/g)) libs.push(path.join(IS_WIN ? m[1].replace(/\\\\/g, '\\') : m[1], 'steamapps'));
-  } catch { /* sem Steam aqui */ }
-  return libs;
-}
 function gameDirs() {
   const out = [];
   const pf86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
   const pf = process.env.ProgramFiles || 'C:\\Program Files';
-  if (!IS_WIN) {
-    for (const root of LINUX_STEAM) for (const lib of steamLibraries(root)) out.push(path.join(lib, 'common', 'Cyberpunk 2077'));
-    out.push(path.join(os.homedir(), 'Games', 'Heroic', 'Cyberpunk 2077'), path.join(os.homedir(), 'Games', 'cyberpunk-2077'));
-    return out;
-  }
   const steamRoots = [path.join(pf86, 'Steam'), path.join(pf, 'Steam')];
   for (const root of steamRoots) {
     out.push(path.join(root, 'steamapps', 'common', 'Cyberpunk 2077'));
@@ -320,13 +299,6 @@ const ACTIONS = new Set(['summon', 'call', 'hangup', 'refresh', 'ping', 'waypoin
 
 // Aperta uma tecla (scancode) na janela do Cyberpunk 2077 — usado para o modo foto (N)
 function pressGameKey(scan) {
-  if (!IS_WIN) {
-    // Linux: xdotool (X11/XWayland). Só a tecla N (modo foto) é usada.
-    const xd = spawn('xdotool', ['search', '--name', 'Cyberpunk 2077', 'windowactivate', '--sync', 'key', 'n']);
-    xd.on('error', () => console.log('  [modo foto] instale o xdotool para abrir o modo foto pelo celular'));
-    xd.on('exit', (c) => console.log(`  [modo foto] xdotool: ${c === 0 ? 'ok' : 'falhou (' + c + ')'}`));
-    return;
-  }
   const ps = spawn('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'presskey.ps1'), '-Scan', String(scan)], { windowsHide: true });
   let out = '';
   ps.stdout.on('data', (d) => { out += d; });
@@ -335,21 +307,6 @@ function pressGameKey(scan) {
 
 // ---------- fotos do modo foto (pasta de capturas do jogo) ----------
 const PHOTO_DIRS = [path.join(os.homedir(), 'Pictures', 'Cyberpunk 2077'), path.join(os.homedir(), 'OneDrive', 'Pictures', 'Cyberpunk 2077')];
-// Linux: as fotos ficam dentro do prefixo do Proton
-if (!IS_WIN) {
-  for (const root of LINUX_STEAM) for (const lib of steamLibraries(root)) {
-    PHOTO_DIRS.push(path.join(lib, 'compatdata', '1091500', 'pfx', 'drive_c', 'users', 'steamuser', 'Pictures', 'Cyberpunk 2077'));
-  }
-}
-// abre um endereço ou pasta no navegador / gerenciador de arquivos do sistema
-function openExternal(target, folder) {
-  const o = { detached: true, stdio: 'ignore', windowsHide: true };
-  let p;
-  if (IS_WIN) p = folder ? spawn('explorer', [target], o) : spawn('cmd', ['/c', 'start', '', target], o);
-  else p = spawn(process.platform === 'darwin' ? 'open' : 'xdg-open', [target], o);
-  p.on('error', () => console.log(`  Não deu para abrir: ${target}`));
-  p.unref();
-}
 function listPhotos() {
   const out = [];
   for (const dir of PHOTO_DIRS) {
@@ -481,11 +438,11 @@ const server = http.createServer(async (req, res) => {
       const which = url.searchParams.get('what');
       // o app no navegador padrão do PC, já pareado
       if (which === 'app') {
-        openExternal(`http://localhost:${PORT}/?k=${TOKEN}`);
+        spawn('cmd', ['/c', 'start', '', `http://localhost:${PORT}/?k=${TOKEN}`], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
         res.writeHead(204); return res.end();
       }
       const target = which === 'photos' ? (PHOTO_DIRS.find((d) => fs.existsSync(d)) || PHOTO_DIRS[0]) : which === 'project' ? path.join(__dirname, '..') : BRIDGE;
-      openExternal(target, true);
+      spawn('explorer', [target], { detached: true, stdio: 'ignore' }).unref();
       res.writeHead(204); return res.end();
     }
     if (url.pathname === '/admin/api/restart' && req.method === 'POST') {
@@ -571,7 +528,7 @@ function ensureAtlasIndex() {
     p.on('error', () => res(false));
     p.on('exit', (c) => res(c === 0));
   });
-  atlasIndexReady = run('python').then((ok) => ok || run('python3')).then((ok) => ok || run('py'));
+  atlasIndexReady = run('python').then((ok) => ok || run('py'));
   return atlasIndexReady;
 }
 function avatarFile(part, atlas) {
@@ -586,7 +543,7 @@ function avatarFile(part, atlas) {
     p.on('error', () => res(false));
     p.on('exit', (c) => res(c === 0));
   });
-  const job = waitIndex.then(() => run('python')).then((ok) => ok || run('python3')).then((ok) => ok || run('py')).then((ok) => {
+  const job = waitIndex.then(() => run('python')).then((ok) => ok || run('py')).then((ok) => {
     avatarJobs.delete(file);
     return ok && fs.existsSync(file) ? file : null;
   });
@@ -633,7 +590,7 @@ function ensureRingtone() {
     p.on('error', () => res(false));
     p.on('exit', (c) => res(c === 0));
   });
-  run('python').then((ok) => ok || run('python3')).then((ok) => ok || run('py')).then((ok) => {
+  run('python').then((ok) => ok || run('py')).then((ok) => {
     if (!ok) console.log('  [toque] não deu para extrair o toque do jogo (precisa do Python). O app usa um toque reserva.');
   });
 }
@@ -690,7 +647,6 @@ server.listen(PORT, '0.0.0.0', () => {
 // Abre o painel numa janela própria do Edge (modo app); sem Edge, no navegador padrão.
 function openGui() {
   const url = `http://localhost:${PORT}/admin`;
-  if (!IS_WIN) { openExternal(url); return; }
   const edge = spawn('cmd', ['/c', 'start', '', 'msedge', `--app=${url}`, '--window-size=1100,760'], { detached: true, stdio: 'ignore', windowsHide: true });
   edge.on('exit', (c) => { if (c) spawn('cmd', ['/c', 'start', '', url], { detached: true, stdio: 'ignore', windowsHide: true }).unref(); });
   edge.unref();
