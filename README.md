@@ -8,7 +8,7 @@
 
 **For the Linux version:** [Nastas95/neuroport-linux](https://github.com/Nastas95/neuroport-linux). This release is for Windows.
 
-**[Download Neuroport 1.1.1 (zip, 7.9 MB)](https://github.com/MattRahmeier/neuroport/releases/latest/download/Neuroport-1.1.1.zip)** from the [latest release](https://github.com/MattRahmeier/neuroport/releases/latest). It will also be on Nexus Mods once it passes review.
+**[Download Neuroport 1.1.2 (zip, 7.9 MB)](https://github.com/MattRahmeier/neuroport/releases/latest/download/Neuroport-1.1.2.zip)** from the [latest release](https://github.com/MattRahmeier/neuroport/releases/latest). It will also be on Nexus Mods once it passes review.
 
 **Install these first:**
 
@@ -19,9 +19,11 @@
 
 **Then:**
 
-1. Extract `Neuroport-1.1.1.zip` into the game folder (the one with `bin` and `archive`), or drag the zip into Vortex / Mod Organizer 2.
+1. Extract `Neuroport-1.1.2.zip` into the game folder (the one with `bin` and `archive`), or drag the zip into Vortex / Mod Organizer 2.
 2. Run `bin\x64\plugins\cyber_engine_tweaks\mods\neuroport\companion\Start Neuroport.bat`. Allow Node.js on **private networks** when Windows Firewall asks.
 3. The control panel opens on the PC. Scan its QR code with your phone (same Wi-Fi), and load a save.
+
+**Vortex:** deploy the mod, then start the `.bat` from the game folder (the path above). If you open it from Vortex's staging folder, the server switches to the game folder by itself.
 
 **Mod Organizer 2:** the `.bat` is in MO2's mods folder (right-click Neuroport in MO2 → *Open in Explorer*). Start the game from MO2 as usual; the server finds MO2's `overwrite` folder by itself. If the game was already open the first time you started the server, restart the game once.
 

@@ -18,7 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
-const { spawn } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
 
 // ---------- argumentos ----------
 const args = process.argv.slice(2);
@@ -34,11 +34,37 @@ const PORT = Number(opt('--port', process.env.NEUROPORT_PORT || 7077));
 // servidor dentro da pasta do mod (pacote do Nexus: mods/neuroport/companion/server); Steam
 // (todas as bibliotecas), GOG e Epic.
 const MOD_SUBPATH = path.join('bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'neuroport');
+// valor do registro do Windows (vazio se não existir)
+function regValue(key, name) {
+  try {
+    const out = execFileSync('reg', ['query', key, '/v', name], { encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
+    const m = out.match(new RegExp('^\\s*' + name + '\\s+REG_\\w+\\s+(.+?)\\s*$', 'mi'));
+    return m ? m[1] : '';
+  } catch { return ''; }
+}
+let _gameDirs = null;
 function gameDirs() {
+  if (_gameDirs) return _gameDirs;
   const out = [];
   const pf86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
   const pf = process.env.ProgramFiles || 'C:\\Program Files';
+  // GOG e Epic instalados em qualquer pasta: o próprio launcher registra onde
+  const gog = regValue('HKLM\\SOFTWARE\\WOW6432Node\\GOG.com\\Games\\1423049311', 'path');
+  if (gog) out.push(gog);
+  try {
+    const dir = path.join(process.env.ProgramData || 'C:\\ProgramData', 'Epic', 'EpicGamesLauncher', 'Data', 'Manifests');
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith('.item')) continue;
+      try {
+        const m = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+        if (/cyberpunk\s*2077/i.test(m.DisplayName || '') && m.InstallLocation) out.push(m.InstallLocation);
+      } catch { /* manifesto inválido */ }
+    }
+  } catch { /* sem Epic */ }
+  // Steam: também fora do Program Files (D:\\Steam etc.)
+  const steamReg = regValue('HKCU\\Software\\Valve\\Steam', 'SteamPath');
   const steamRoots = [path.join(pf86, 'Steam'), path.join(pf, 'Steam')];
+  if (steamReg) steamRoots.unshift(path.normalize(steamReg));
   for (const root of steamRoots) {
     out.push(path.join(root, 'steamapps', 'common', 'Cyberpunk 2077'));
     // outras bibliotecas da Steam (D:\\SteamLibrary etc.)
@@ -49,7 +75,8 @@ function gameDirs() {
   }
   out.push(path.join(pf86, 'GOG Galaxy', 'Games', 'Cyberpunk 2077'), path.join(pf, 'GOG Galaxy', 'Games', 'Cyberpunk 2077'),
     'C:\\GOG Games\\Cyberpunk 2077', path.join(pf, 'Epic Games', 'Cyberpunk2077'), path.join(pf, 'Epic Games', 'Cyberpunk 2077'));
-  return out;
+  _gameDirs = out.filter((d, i) => out.findIndex((x) => x.toLowerCase() === d.toLowerCase()) === i);
+  return _gameDirs;
 }
 const isGame = (g) => fs.existsSync(path.join(g, 'archive', 'pc', 'content'));
 // pasta do mod onde o próprio servidor está (pacote: mods/neuroport/companion/server)
@@ -83,12 +110,23 @@ function mo2GamePath(root) {
   } catch { /* sem ini */ }
   return null;
 }
+// Vortex: o pacote fica na pasta de staging (com o arquivo __vortex_staging_folder) e é ligado à pasta
+// do jogo por hardlinks. O jogo nunca lê a pasta de staging: se o servidor foi aberto por ela, a ponte
+// é a pasta do mod dentro do jogo.
+function vortexStaging(modDir) {
+  if (!modDir) return null;
+  const parts = modDir.split(path.sep);
+  const n = MOD_SUBPATH.split(path.sep).length;
+  const root = parts.slice(0, parts.length - n - 1).join(path.sep);   // <staging>\\<mod>\\bin\\... -> <staging>
+  return root && fs.existsSync(path.join(root, '__vortex_staging_folder')) ? root : null;
+}
 const OWN_MOD = ownModDir();
 const MO2 = mo2Root(OWN_MOD);
+const VORTEX = MO2 ? null : vortexStaging(OWN_MOD);
 function findGameDir() {
   const fromMo2 = MO2 && mo2GamePath(MO2);
   if (fromMo2 && isGame(fromMo2)) return fromMo2;
-  if (OWN_MOD && !MO2) {
+  if (OWN_MOD && !MO2 && !VORTEX) {
     const up = path.resolve(OWN_MOD, '..', '..', '..', '..', '..', '..');
     if (isGame(up)) return up;
   }
@@ -105,9 +143,11 @@ function findBridges() {
   if (forced) return [forced];
   const out = [];
   const add = (d) => { if (d && !out.some((x) => x.toLowerCase() === d.toLowerCase())) out.push(d); };
+  const inGame = path.join(GAME_DIR, MOD_SUBPATH);
+  // staging do Vortex: só se a pasta do jogo não for encontrada (aí o painel avisa)
+  if (VORTEX && fs.existsSync(inGame)) return [inGame];
   add(OWN_MOD);
   if (MO2) add(path.join(MO2, 'overwrite', MOD_SUBPATH));
-  const inGame = path.join(GAME_DIR, MOD_SUBPATH);
   if (!out.length || fs.existsSync(inGame)) add(inGame);
   return out;
 }
@@ -208,13 +248,19 @@ function writeInbox() {
     try {
       fs.writeFileSync(tmp, body + (body ? '\n' : ''), 'utf8');
       fs.renameSync(tmp, inbox);
+      inboxFails = 0;
     } catch (e) {
       // O mod pode estar lendo o arquivo neste instante; tenta de novo em breve.
       retry = true;
+      if (++inboxFails === 30) {
+        console.log(`  !! Can't write ${inbox} (${e.code}). Is the game folder read-only, or blocked by the antivirus?`);
+        console.log(`  !! Não consigo gravar ${inbox} (${e.code}). A pasta do jogo está protegida (antivírus / Program Files)?`);
+      }
     }
   }
-  if (retry) setTimeout(writeInbox, 60);
+  if (retry) setTimeout(writeInbox, inboxFails > 30 ? 2000 : 60);
 }
+let inboxFails = 0;
 
 const seenAcks = new Set();
 function pollWorld() {
@@ -475,7 +521,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({
         mock: MOCK, port: PORT, token: TOKEN, ips: lanAddresses(), uptime: Date.now() - startedAt,
-        bridge: activeBridge, bridgeExists: fs.existsSync(activeBridge), mo2: !!MO2,
+        bridge: activeBridge, bridgeExists: fs.existsSync(activeBridge), mo2: !!MO2, vortex: !!VORTEX,
         online: snap.online, inGame: !!g.inGame, mod: g.mod || null, lang: g.lang || null, immersive: !!g.immersive, immHud: g.immHud || [],
         player: g.player || null, district: g.district || null, vehicle: g.vehicle || null,
         counts: { pois: (g.pois || []).length, contacts: (g.contacts || []).length, quests: ((g.journal || {}).quests || []).length, offers: (g.offers || []).length },
@@ -567,7 +613,8 @@ function lanAddresses() {
   const out = [];
   for (const [name, list] of Object.entries(os.networkInterfaces())) {
     for (const a of list || []) {
-      if (a.family === 'IPv4' && !a.internal && !/vEthernet|VirtualBox|VMware|WSL|Hyper-V/i.test(name)) {
+      if (a.family === 'IPv4' && !a.internal && !/^169\.254\./.test(a.address) &&
+        !/vEthernet|VirtualBox|VMware|WSL|Hyper-V|Hamachi|Radmin|ZeroTier|TAP|OpenVPN|WireGuard|NordLynx|ProtonVPN|Npcap|Bluetooth/i.test(name)) {
         out.push(a.address);
       }
     }
@@ -702,6 +749,11 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log('  Modo SIMULAÇÃO (--mock): nenhum jogo necessário.');
   } else {
     console.log('  Pasta do mod: ' + BRIDGE);
+    if (VORTEX) {
+      console.log('  Vortex: ' + (BRIDGE === OWN_MOD
+        ? 'aberto pela pasta de staging e a pasta do jogo não foi encontrada. Abra o "Start Neuroport.bat" pela pasta do jogo.'
+        : 'aberto pela pasta de staging; usando a pasta do mod dentro do jogo.'));
+    }
     if (MO2) {
       console.log('  Mod Organizer 2: ' + MO2);
       console.log('    (também lendo ' + path.join(MO2, 'overwrite', MOD_SUBPATH) + ')');
